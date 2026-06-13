@@ -1,0 +1,178 @@
+{
+  "info": {
+    "_postman_id": "848b30e0-47da-4e1b-90f9-a35b8cb46cff",
+    "name": "SpeakUP API Collection",
+    "description": "API collection to test all endpoints of the SpeakUp Anonymous Crime Reporting Platform",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Submit Anonymous Report",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"title\": \"Suspicious Vehicle in Neighborhood\",\n  \"description\": \"Black sedan with license plate XY-9876 has been circling Sector 4 area for past 3 days. Reporter phone +91 9999999999 and email test@test.com.\",\n  \"category\": \"Suspicious Activity\",\n  \"enable_redact\": true\n}"
+        },
+        "url": {
+          "raw": "http://localhost:5055/api/reports",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "5055",
+          "path": [
+            "api",
+            "reports"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Submit Report with Location",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"title\": \"Illegal Waste Dumping\",\n  \"description\": \"Industrial chemical barrels being dumped next to the community park at midnight. High threat of ground water contamination.\",\n  \"category\": \"Public Safety\",\n  \"latitude\": 28.6139,\n  \"longitude\": 77.2090,\n  \"enable_redact\": false\n}"
+        },
+        "url": {
+          "raw": "http://localhost:5055/api/reports",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "5055",
+          "path": [
+            "api",
+            "reports"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Upload Media Evidence",
+      "request": {
+        "method": "POST",
+        "header": [],
+        "body": {
+          "mode": "formdata",
+          "formdata": [
+            {
+              "key": "evidence",
+              "type": "file",
+              "src": []
+            }
+          ]
+        },
+        "url": {
+          "raw": "http://localhost:5055/api/upload",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "5055",
+          "path": [
+            "api",
+            "upload"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Get All Reports",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "http://localhost:5055/api/reports",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "5055",
+          "path": [
+            "api",
+            "reports"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Get Reports with Filters",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "http://localhost:5055/api/reports?category=Suspicious Activity&severity=High",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "5055",
+          "path": [
+            "api",
+            "reports"
+          ],
+          "query": [
+            {
+              "key": "category",
+              "value": "Suspicious Activity"
+            },
+            {
+              "key": "severity",
+              "value": "High"
+            }
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Update Report Status & Remarks",
+      "request": {
+        "method": "PATCH",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"status\": \"Under Investigation\",\n  \"admin_remarks\": \"Assigned case file to Sector 4 local intelligence division. Coordinating forensics review.\"\n}"
+        },
+        "url": {
+          "raw": "http://localhost:5055/api/reports/1",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "5055",
+          "path": [
+            "api",
+            "reports",
+            "1"
+          ]
+        }
+      },
+      "response": []
+    }
+  ]
+}
