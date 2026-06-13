@@ -62,8 +62,16 @@ async function updateReportStatusAndRemarks(id, { status, admin_remarks }) {
   return result.rows[0];
 }
 
+async function getReportById(id) {
+  const sql = 'SELECT * FROM reports WHERE id = $1';
+  const result = await query(sql, [id]);
+  return result.rows[0];
+}
+
 export default {
   insertReport,
   getReportsList,
-  updateReportStatusAndRemarks
+  updateReportStatusAndRemarks,
+  getReportById
 };
+
