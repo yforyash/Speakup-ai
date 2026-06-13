@@ -52,7 +52,7 @@ function SpeakUpApp() {
       
       {/* Top Accessibility & Language Toolbar */}
       <div className="w-full bg-[#1b365d] border-b border-white/5 py-2 px-6 text-[10px] text-slate-200">
-        <div className="max-w-6xl mx-auto flex justify-between items-center">
+        <div className="w-full px-4 sm:px-8 lg:px-12 flex justify-between items-center">
           {/* Left: Government of India info */}
           <div className="flex items-center gap-2 font-semibold">
             <span>भारत सरकार | Government of India</span>
@@ -114,7 +114,7 @@ function SpeakUpApp() {
 
       {/* Official Government Header Banner */}
       <header className="w-full bg-white border-b border-slate-200 shadow-md py-4 sticky top-0 z-50 backdrop-blur-md bg-opacity-95 text-slate-800">
-        <div className="max-w-6xl mx-auto px-6 flex flex-col sm:flex-row justify-between items-center gap-4">
+        <div className="w-full px-4 sm:px-8 lg:px-12 flex flex-col sm:flex-row justify-between items-center gap-4">
           
           {/* Flag, Emblem & Ministry info */}
           <div className="flex items-center gap-4">
@@ -174,7 +174,7 @@ function SpeakUpApp() {
 
       {/* Dynamic News Ticker */}
       <div className="w-full bg-[#ff9933]/10 border-b border-slate-200 py-1.5 px-6 overflow-hidden relative">
-        <div className="max-w-6xl mx-auto flex items-center gap-4 text-xs font-semibold">
+        <div className="w-full px-4 sm:px-8 lg:px-12 flex items-center gap-4 text-xs font-semibold">
           <span className="bg-red-600 text-white text-[9px] uppercase font-extrabold px-1.5 py-0.5 rounded flex-shrink-0 animate-pulse">
             Notice
           </span>
@@ -188,7 +188,7 @@ function SpeakUpApp() {
 
       {/* Trust reassurance bar */}
       <div className="w-full bg-[#138808]/5 border-b border-slate-200 py-2 px-6">
-        <div className="max-w-6xl mx-auto flex items-center justify-center gap-2 text-[10px] text-slate-600 text-center font-medium">
+        <div className="w-full px-4 sm:px-8 lg:px-12 flex items-center justify-center gap-2 text-[10px] text-slate-600 text-center font-medium">
           <ShieldCheck className="w-4 h-4 text-[#138808] flex-shrink-0" />
           <span>{t.notice}</span>
         </div>
@@ -221,7 +221,7 @@ function SpeakUpApp() {
       </div>
 
       {/* Main Content Body */}
-      <main className="w-full max-w-6xl px-6 mt-8">
+      <main className="w-full px-4 sm:px-8 lg:px-12 mt-6 flex-grow">
         {view === 'form' ? <App /> : <Admin />}
       </main>
     </div>

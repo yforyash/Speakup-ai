@@ -74,9 +74,46 @@ const FAQS = [
   }
 ];
 
+const NODAL_OFFICERS = [
+  { state: 'Delhi', officer: 'Sh. Rajesh Kumar, IPS', email: 'cp.delhi@gov.in', contact: '011-23490012' },
+  { state: 'Maharashtra', officer: 'Sh. Sanjay Pandey, IPS', email: 'cyber.maharashtra@gov.in', contact: '022-22620111' },
+  { state: 'Karnataka', officer: 'Smt. G. Radhika, IPS', email: 'sp.cybercrime@ksp.gov.in', contact: '080-22375522' },
+  { state: 'Tamil Nadu', officer: 'Sh. A. G. Babu, IPS', email: 'sp.cybertamil@gov.in', contact: '044-28447733' },
+  { state: 'Uttar Pradesh', officer: 'Sh. Triveni Singh, IPS', email: 'sp.cyberup@gov.in', contact: '0522-2206110' },
+  { state: 'West Bengal', officer: 'Sh. Harikrishna Dwivedi, IAS', email: 'cybercell.wb@gov.in', contact: '033-22145400' },
+  { state: 'Gujarat', officer: 'Sh. Amit Vishwakarma, IPS', email: 'cyber.gujarat@gov.in', contact: '079-23250798' },
+  { state: 'Rajasthan', officer: 'Sh. Hawa Singh Ghumaria, IPS', email: 'sp.cyber.jaipur@gov.in', contact: '0141-2608447' }
+];
+
+const ADVISORIES = [
+  { id: 1, title: 'Urgent Advisory: UPI Phishing Scams disguised as tax refunds', date: 'June 12, 2026', severity: 'Critical', desc: 'Fraudulent SMS portals are prompting citizens to download APK payloads for tax returns.' },
+  { id: 2, title: 'Advisory on Ransomware targeting local Municipal servers', date: 'May 28, 2026', severity: 'High', desc: 'Keep local file backups and disable SMB ports unless authenticated through secure networks.' },
+  { id: 3, title: 'National Cyber Security Awareness Campaign guidelines', date: 'May 15, 2026', severity: 'Medium', desc: 'Review the MHA safe internet routing checklist for home and business configurations.' },
+  { id: 4, title: 'Warning: Fake e-challan portals operating on spoofed domains', date: 'April 30, 2026', severity: 'Critical', desc: 'Confirm URL domain before inputting card coordinates or OTP keys.' }
+];
+
+const CIRCULARS = [
+  { title: 'Information Technology Act (Section 66D) Reference.pdf', size: '1.2 MB' },
+  { title: 'MHA Cyber Crime Investigation SOP (Volume 4).pdf', size: '3.4 MB' },
+  { title: 'Indian Penal Code Sections 419 & 420 Reference guidelines.pdf', size: '840 KB' },
+  { title: 'Anonymous Whistleblower Protection Charter, 2026.pdf', size: '1.8 MB' }
+];
+
 export default function App() {
   // Navigation tabs within Citizen view
   const [activeTab, setActiveTab] = useState('report'); // 'report' | 'fir' | 'track' | 'registry'
+
+  // Accordion / Collapsible section states for forms
+  const [isCategoryOpen, setIsCategoryOpen] = useState(true);
+  const [isDescriptionOpen, setIsDescriptionOpen] = useState(true);
+  const [isEvidenceOpen, setIsEvidenceOpen] = useState(false);
+  const [isMapOpen, setIsMapOpen] = useState(false);
+  const [isComplainantOpen, setIsComplainantOpen] = useState(false);
+  const [isGovIdOpen, setIsGovIdOpen] = useState(false);
+  const [isConsentOpen, setIsConsentOpen] = useState(true);
+
+  // Search State Nodal Officers
+  const [selectedState, setSelectedState] = useState('All');
 
   // General Form States
   const [selectedCategory, setSelectedCategory] = useState('Crime & Violence');
@@ -379,13 +416,13 @@ export default function App() {
   });
 
   return (
-    <div className="w-full space-y-10">
+    <div className="w-full space-y-8">
       
-      {/* 2-Column Grid Layout: Side Info Column and Main Action Frame */}
-      <div className="grid grid-cols-1 lg:grid-cols-4 gap-8 items-start">
+      {/* 3-Column Grid Layout: Left Column (Helplines & Nodal Officers), Center Column (Forms & Main Action Frame), Right Column (Bulletins, Acts & FAQs) */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
         
-        {/* Left Column: Helplines & Security Seals */}
-        <div className="lg:col-span-1 space-y-6">
+        {/* Left Column: Helplines, Nodal Officers & Security Seals */}
+        <div className="lg:col-span-3 space-y-6">
           
           {/* Official Helplines */}
           <div className="bg-white border-t-4 border-t-[#ff9933] border-x border-b border-slate-200 p-5 rounded-2xl space-y-4 shadow-md relative overflow-hidden text-slate-800">
@@ -402,7 +439,7 @@ export default function App() {
                 Emergency Helplines
               </h3>
             </div>
-            <p className="text-[10px] text-slate-500">
+            <p className="text-[10px] text-slate-550">
               For immediate physical assistance or threat to life, contact emergency dispatchers immediately:
             </p>
             <div className="space-y-2">
@@ -418,7 +455,7 @@ export default function App() {
               </a>
               <a
                 href="tel:1930"
-                className="flex items-center justify-between p-2.5 bg-slate-50 hover:bg-blue-550/10 border border-slate-200 hover:border-blue-500/30 rounded-xl text-xs font-semibold text-slate-700 hover:text-blue-600 transition duration-200"
+                className="flex items-center justify-between p-2.5 bg-slate-50 hover:bg-blue-50/10 border border-slate-200 hover:border-blue-500/30 rounded-xl text-xs font-semibold text-slate-700 hover:text-blue-600 transition duration-200"
               >
                 <span>Cyber Crime</span>
                 <span className="font-mono text-blue-600 font-bold">1930</span>
@@ -432,11 +469,52 @@ export default function App() {
               </a>
               <a
                 href="tel:1098"
-                className="flex items-center justify-between p-2.5 bg-slate-50 hover:bg-purple-500/15 border border-slate-200 hover:border-purple-500/30 rounded-xl text-xs font-semibold text-slate-700 hover:text-purple-600 transition duration-200"
+                className="flex items-center justify-between p-2.5 bg-slate-50 hover:bg-purple-500/15 border border-slate-200 hover:border-purple-500/30 rounded-xl text-xs font-semibold text-slate-700 hover:text-purple-650 transition duration-200"
               >
                 <span>Child Helpline</span>
-                <span className="font-mono text-purple-600 font-bold">1098</span>
+                <span className="font-mono text-purple-650 font-bold">1098</span>
               </a>
+            </div>
+          </div>
+
+          {/* Searchable State Nodal Officers Directory */}
+          <div className="bg-white border-t-4 border-t-[#138808] border-x border-b border-slate-200 p-5 rounded-2xl space-y-4 shadow-md text-slate-800">
+            <div className="flex items-center gap-2">
+              <Globe className="w-4 h-4 text-[#138808]" />
+              <h3 className="text-xs font-bold text-[#1b365d] uppercase tracking-wider">
+                State Nodal Directory
+              </h3>
+            </div>
+            <p className="text-[10px] text-slate-500">
+              Locate official cyber crime cell investigators and contact details by selecting your state:
+            </p>
+            <div className="space-y-3">
+              <select
+                value={selectedState}
+                onChange={(e) => setSelectedState(e.target.value)}
+                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-[11px] font-medium text-slate-700 outline-none focus:border-[#138808]/50"
+              >
+                <option value="All">All States / UTs</option>
+                <option value="Delhi">Delhi</option>
+                <option value="Maharashtra">Maharashtra</option>
+                <option value="Karnataka">Karnataka</option>
+                <option value="Tamil Nadu">Tamil Nadu</option>
+                <option value="Uttar Pradesh">Uttar Pradesh</option>
+                <option value="West Bengal">West Bengal</option>
+                <option value="Gujarat">Gujarat</option>
+                <option value="Rajasthan">Rajasthan</option>
+              </select>
+
+              <div className="space-y-2 max-h-[160px] overflow-y-auto pr-1">
+                {NODAL_OFFICERS.filter(off => selectedState === 'All' || off.state === selectedState).map((off, idx) => (
+                  <div key={idx} className="p-2 bg-slate-50 rounded-lg border border-slate-150 text-[10px] space-y-0.5">
+                    <div className="font-bold text-[#1b365d]">{off.state} Node</div>
+                    <div className="text-slate-750 font-semibold">{off.officer}</div>
+                    <div className="text-slate-500">Email: {off.email}</div>
+                    <div className="text-[#138808] font-bold">Tel: {off.contact}</div>
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
 
@@ -489,9 +567,33 @@ export default function App() {
 
         </div>
 
-        {/* Right Columns: Main content, forms & public registry */}
-        <div className="lg:col-span-3 space-y-6">
+        {/* Center Column: Portal Statistics, Tab capsule controller & Action forms */}
+        <div className="lg:col-span-6 space-y-6">
           
+          {/* Live Portal Statistics Counter Banner */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+            <div className="bg-white border border-slate-200 p-4 rounded-2xl shadow-sm text-center">
+              <div className="text-[9px] uppercase font-bold text-slate-500 tracking-wider">Alerts Sent</div>
+              <div className="text-lg font-extrabold text-[#ff9933] mt-1">1,245</div>
+              <div className="text-[8px] text-slate-400 mt-0.5">Dispatched Today</div>
+            </div>
+            <div className="bg-white border border-slate-200 p-4 rounded-2xl shadow-sm text-center">
+              <div className="text-[9px] uppercase font-bold text-slate-500 tracking-wider">Nodal Officers</div>
+              <div className="text-lg font-extrabold text-[#1b365d] mt-1">840+</div>
+              <div className="text-[8px] text-[#138808] font-bold mt-0.5">Active on Nodes</div>
+            </div>
+            <div className="bg-white border border-slate-200 p-4 rounded-2xl shadow-sm text-center">
+              <div className="text-[9px] uppercase font-bold text-slate-500 tracking-wider">Resolved Cases</div>
+              <div className="text-lg font-extrabold text-[#138808] mt-1">14,208</div>
+              <div className="text-[8px] text-slate-400 mt-0.5">This Quarter</div>
+            </div>
+            <div className="bg-white border border-slate-200 p-4 rounded-2xl shadow-sm text-center">
+              <div className="text-[9px] uppercase font-bold text-slate-500 tracking-wider">Network Integrity</div>
+              <div className="text-lg font-extrabold text-emerald-600 mt-1">99.98%</div>
+              <div className="text-[8px] text-emerald-650 font-bold mt-0.5">Secured & Active</div>
+            </div>
+          </div>
+
           {/* Inner Citizen Tabs switcher - Responsive Grid */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-1 bg-white p-1 rounded-xl border border-slate-200 shadow-sm">
             <button
@@ -572,8 +674,8 @@ export default function App() {
                     </button>
                   </div>
                 ) : (
-                  <form onSubmit={handleFormSubmit} className="bg-white border border-slate-200 p-6 md:p-8 rounded-3xl space-y-6 shadow-md text-slate-800">
-                    <div className="space-y-1">
+                  <form onSubmit={handleFormSubmit} className="bg-white border border-slate-200 p-6 md:p-8 rounded-3xl space-y-4 shadow-md text-slate-800 animate-fade-in">
+                    <div className="space-y-1 pb-2">
                       <h3 className="text-sm font-extrabold text-[#1b365d] uppercase flex items-center gap-1.5">
                         <ShieldAlert className="w-4 h-4 text-[#ff9933]" />
                         Anonymous Incident Intelligence Triage
@@ -583,165 +685,245 @@ export default function App() {
                       </p>
                     </div>
 
-                    {/* Step 1: Category */}
-                    <div className="space-y-3">
-                      <h3 className="text-xs font-bold uppercase tracking-wider text-slate-450">1. Incident Category</h3>
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                        {CATEGORIES.map((cat) => {
-                          const Icon = cat.icon;
-                          const isSelected = selectedCategory === cat.id;
-                          return (
-                            <button
-                              key={cat.id}
-                              type="button"
-                              onClick={() => setSelectedCategory(cat.id)}
-                              className={`flex flex-col items-start p-3.5 rounded-xl border text-left transition duration-200 group relative ${
-                                isSelected 
-                                  ? 'bg-[#ff9933]/10 border-[#ff9933]/50 shadow-sm' 
-                                  : 'bg-slate-50 border-slate-200 hover:bg-slate-100/60'
-                              }`}
-                            >
-                              <div className={`p-2 rounded-lg ${cat.bg} ${cat.color} border ${cat.border} mb-3 group-hover:scale-110 transition duration-200`}>
-                                <Icon className="w-4 h-4" />
-                              </div>
-                              <div className="text-xs font-bold text-slate-900 mb-0.5">{cat.label}</div>
-                              <div className="text-[10px] text-slate-500 line-clamp-1">{cat.desc}</div>
-                              {isSelected && <span className="absolute top-3 right-3 w-1.5 h-1.5 rounded-full bg-[#ff9933] animate-pulse"></span>}
-                            </button>
-                          );
-                        })}
-                      </div>
-                    </div>
-
-                    {/* Step 2: Title & Description */}
-                    <div className="space-y-4">
-                      <h3 className="text-xs font-bold uppercase tracking-wider text-slate-450">2. Incident Details</h3>
-                      <div className="space-y-1.5">
-                        <label className="text-[11px] text-slate-500 font-semibold">Incident Title</label>
-                        <input
-                          type="text"
-                          className="w-full bg-slate-50 border border-slate-200 focus:border-[#1b365d]/50 rounded-xl px-4 py-3 text-xs text-slate-800 placeholder-slate-400 outline-none transition"
-                          placeholder="Brief summary (e.g. Theft in Sector 4 Market)"
-                          value={title}
-                          onChange={(e) => setTitle(e.target.value)}
-                          required
-                        />
-                      </div>
-
-                      <div className="space-y-1.5">
-                        <div className="flex justify-between items-center">
-                          <label className="text-[11px] text-slate-500 font-semibold">Detailed Description</label>
-                          <button
-                            type="button"
-                            onClick={toggleRecording}
-                            className={`flex items-center gap-1.5 text-[10px] font-bold px-2.5 py-1 rounded-full border transition duration-200 ${
-                              isRecording 
-                                ? 'bg-red-500/10 border-red-500/30 text-red-500' 
-                                : 'bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100'
-                            }`}
-                          >
-                            {isRecording ? <MicOff className="w-3 h-3 text-red-500" /> : <Mic className="w-3 h-3 text-red-500" />}
-                            {isRecording ? 'Listening...' : 'Dictate Speech'}
-                          </button>
-                        </div>
-                        <textarea
-                          rows={4}
-                          className="w-full bg-slate-50 border border-slate-200 focus:border-[#1b365d]/50 rounded-xl px-4 py-3 text-xs text-slate-850 placeholder-slate-400 outline-none transition resize-none font-sans"
-                          placeholder="Provide a thorough explanation. What occurred? When? Mention vehicle numbers or physical markings if available."
-                          value={description}
-                          onChange={(e) => setDescription(e.target.value)}
-                          required
-                        />
-                      </div>
-                    </div>
-
-                    {/* Step 3: Evidence Upload */}
-                    <div className="space-y-3">
-                      <h3 className="text-xs font-bold uppercase tracking-wider text-slate-450">3. Upload Evidence (Optional)</h3>
-                      <input
-                        type="file"
-                        ref={fileInputRef}
-                        className="hidden"
-                        onChange={handleFileUpload}
-                        accept="image/*,video/*,application/pdf"
-                      />
-                      <div 
-                        onClick={() => fileInputRef.current?.click()}
-                        className={`border-2 border-dashed rounded-2xl p-5 flex flex-col items-center justify-center gap-2 cursor-pointer transition ${
-                          uploadSuccess 
-                            ? 'border-emerald-500/35 bg-emerald-500/5' 
-                            : 'border-slate-200 bg-slate-50 hover:bg-slate-100/60'
-                        }`}
+                    {/* Section 1: Classification & Category (Collapsible) */}
+                    <div className="border border-slate-200 rounded-2xl overflow-hidden">
+                      <button
+                        type="button"
+                        onClick={() => setIsCategoryOpen(!isCategoryOpen)}
+                        className="w-full flex justify-between items-center p-4 bg-slate-50 hover:bg-slate-100/60 transition text-left"
                       >
-                        {isUploading ? (
-                          <div className="flex flex-col items-center gap-2">
-                            <div className="w-6 h-6 border-2 border-slate-350 border-t-[#ff9933] rounded-full animate-spin"></div>
-                            <span className="text-[10px] text-slate-500">Encrypting & uploading...</span>
-                          </div>
-                        ) : uploadSuccess ? (
-                          <div className="flex flex-col items-center gap-1.5">
-                            <div className="w-8 h-8 bg-emerald-500/10 rounded-full border border-emerald-500/30 flex items-center justify-center text-[#138808]">
-                              <Check className="w-4 h-4" />
-                            </div>
-                            <span className="text-[11px] font-bold text-[#138808]">Evidence Uploaded Successfully</span>
-                          </div>
-                        ) : (
-                          <>
-                            <UploadCloud className="w-6 h-6 text-slate-400" />
-                            <span className="text-[11px] font-bold text-slate-800">Drag & drop or browse files</span>
-                            <span className="text-[9px] text-slate-500">Images, videos, or PDFs up to 50MB</span>
-                          </>
-                        )}
-                      </div>
-                    </div>
-
-                    {/* Step 4: Geotag Location */}
-                    <div className="space-y-3">
-                      <div className="flex justify-between items-center">
-                        <h3 className="text-xs font-bold uppercase tracking-wider text-slate-450">4. Incident Location (Optional)</h3>
-                        <button
-                          type="button"
-                          onClick={handleGetLocation}
-                          className={`flex items-center gap-1.5 text-[10px] font-bold px-3 py-1 rounded-full border transition duration-200 ${
-                            includeLocation 
-                              ? 'bg-[#ff9933]/15 border-[#ff9933]/30 text-[#e68a2e]' 
-                              : 'bg-slate-50 border-slate-200 text-slate-650 hover:bg-slate-100'
-                          }`}
-                        >
-                          <MapPin className="w-3 h-3" />
-                          {includeLocation ? 'Location Coordinates Captured' : 'Attach Coordinates'}
-                        </button>
-                      </div>
-                      {includeLocation && (
-                        <div className="space-y-2">
-                          <div className="h-[200px] rounded-xl overflow-hidden border border-slate-200">
-                            <MapContainer center={mapCenter} zoom={13} style={{ height: '100%', width: '100%' }}>
-                              <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
-                              <Marker position={coordinates} />
-                              <MapEvents />
-                            </MapContainer>
+                        <div className="flex items-center gap-2 text-xs font-bold text-[#1b365d] uppercase tracking-wide">
+                          <Flame className="w-4 h-4 text-[#ff9933]" />
+                          1. Incident Classification & Category
+                        </div>
+                        {isCategoryOpen ? <ChevronUp className="w-4 h-4 text-[#1b365d]" /> : <ChevronDown className="w-4 h-4 text-[#1b365d]" />}
+                      </button>
+                      
+                      {isCategoryOpen && (
+                        <div className="p-4 border-t border-slate-200 space-y-4 bg-white">
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            {CATEGORIES.map((cat) => {
+                              const Icon = cat.icon;
+                              const isSelected = selectedCategory === cat.id;
+                              return (
+                                <button
+                                  key={cat.id}
+                                  type="button"
+                                  onClick={() => setSelectedCategory(cat.id)}
+                                  className={`flex flex-col items-start p-3.5 rounded-xl border text-left transition duration-200 group relative ${
+                                    isSelected 
+                                      ? 'bg-[#ff9933]/10 border-[#ff9933]/50 shadow-sm' 
+                                      : 'bg-slate-50 border-slate-200 hover:bg-slate-100/60'
+                                  }`}
+                                >
+                                  <div className={`p-2 rounded-lg ${cat.bg} ${cat.color} border ${cat.border} mb-3 group-hover:scale-110 transition duration-200`}>
+                                    <Icon className="w-4 h-4" />
+                                  </div>
+                                  <div className="text-xs font-bold text-slate-900 mb-0.5">{cat.label}</div>
+                                  <div className="text-[10px] text-slate-500 line-clamp-1">{cat.desc}</div>
+                                  {isSelected && <span className="absolute top-3 right-3 w-1.5 h-1.5 rounded-full bg-[#ff9933] animate-pulse"></span>}
+                                </button>
+                              );
+                            })}
                           </div>
                         </div>
                       )}
                     </div>
 
-                    {/* Step 5: AI Redaction Toggle */}
-                    <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 flex items-center justify-between">
-                      <div className="flex items-center gap-3">
-                        <div className="p-2 bg-blue-500/10 border border-blue-500/25 rounded-lg">
-                          <ShieldAlert className="w-4 h-4 text-blue-600" />
+                    {/* Section 2: Incident Details (Title & Description) (Collapsible) */}
+                    <div className="border border-slate-200 rounded-2xl overflow-hidden">
+                      <button
+                        type="button"
+                        onClick={() => setIsDescriptionOpen(!isDescriptionOpen)}
+                        className="w-full flex justify-between items-center p-4 bg-slate-50 hover:bg-slate-100/60 transition text-left"
+                      >
+                        <div className="flex items-center gap-2 text-xs font-bold text-[#1b365d] uppercase tracking-wide">
+                          <FileText className="w-4 h-4 text-[#ff9933]" />
+                          2. Incident Narrative & Details
                         </div>
-                        <div>
-                          <div className="text-xs font-bold text-slate-800">Enable AI Privacy Redaction</div>
-                          <div className="text-[9px] text-slate-500 mt-0.5">Scrub names, phone numbers, and addresses dynamically.</div>
+                        {isDescriptionOpen ? <ChevronUp className="w-4 h-4 text-[#1b365d]" /> : <ChevronDown className="w-4 h-4 text-[#1b365d]" />}
+                      </button>
+
+                      {isDescriptionOpen && (
+                        <div className="p-4 border-t border-slate-200 space-y-4 bg-white">
+                          <div className="space-y-1.5">
+                            <label className="text-[11px] text-slate-500 font-semibold">Incident Title</label>
+                            <input
+                              type="text"
+                              className="w-full bg-slate-50 border border-slate-200 focus:border-[#1b365d]/50 rounded-xl px-4 py-3 text-xs text-slate-800 placeholder-slate-400 outline-none transition"
+                              placeholder="Brief summary (e.g. Theft in Sector 4 Market)"
+                              value={title}
+                              onChange={(e) => setTitle(e.target.value)}
+                              required
+                            />
+                          </div>
+
+                          <div className="space-y-1.5">
+                            <div className="flex justify-between items-center">
+                              <label className="text-[11px] text-slate-500 font-semibold">Detailed Description</label>
+                              <button
+                                type="button"
+                                onClick={toggleRecording}
+                                className={`flex items-center gap-1.5 text-[10px] font-bold px-2.5 py-1 rounded-full border transition duration-200 ${
+                                  isRecording 
+                                    ? 'bg-red-500/10 border-red-500/30 text-red-500' 
+                                    : 'bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100'
+                                }`}
+                              >
+                                {isRecording ? <MicOff className="w-3 h-3 text-red-500" /> : <Mic className="w-3 h-3 text-red-500" />}
+                                {isRecording ? 'Listening...' : 'Dictate Speech'}
+                              </button>
+                            </div>
+                            <textarea
+                              rows={4}
+                              className="w-full bg-slate-50 border border-slate-200 focus:border-[#1b365d]/50 rounded-xl px-4 py-3 text-xs text-slate-855 placeholder-slate-400 outline-none transition resize-none font-sans"
+                              placeholder="Provide a thorough explanation. What occurred? When? Mention vehicle numbers or physical markings if available."
+                              value={description}
+                              onChange={(e) => setDescription(e.target.value)}
+                              required
+                            />
+                          </div>
                         </div>
-                      </div>
-                      <input
-                        type="checkbox"
-                        className="w-4 h-4 text-[#ff9933] border-slate-350 bg-white rounded focus:ring-[#ff9933]"
-                        checked={enableRedact}
-                        onChange={() => setEnableRedact(!enableRedact)}
-                      />
+                      )}
+                    </div>
+
+                    {/* Section 3: Evidence media uploader (Collapsible, closed by default) */}
+                    <div className="border border-slate-200 rounded-2xl overflow-hidden">
+                      <button
+                        type="button"
+                        onClick={() => setIsEvidenceOpen(!isEvidenceOpen)}
+                        className="w-full flex justify-between items-center p-4 bg-slate-50 hover:bg-slate-100/60 transition text-left"
+                      >
+                        <div className="flex items-center gap-2 text-xs font-bold text-[#1b365d] uppercase tracking-wide">
+                          <UploadCloud className="w-4 h-4 text-[#ff9933]" />
+                          3. Evidence Files Upload {evidenceUrl && <span className="text-[#138808] text-[9px] lowercase font-bold">(uploaded)</span>}
+                        </div>
+                        {isEvidenceOpen ? <ChevronUp className="w-4 h-4 text-[#1b365d]" /> : <ChevronDown className="w-4 h-4 text-[#1b365d]" />}
+                      </button>
+
+                      {isEvidenceOpen && (
+                        <div className="p-4 border-t border-slate-200 space-y-3 bg-white">
+                          <p className="text-[10px] text-slate-500">Provide photos, screenshots, videos or documents backing up the incident statement. Encrypted inside secure cloud buckets.</p>
+                          <input
+                            type="file"
+                            ref={fileInputRef}
+                            className="hidden"
+                            onChange={handleFileUpload}
+                            accept="image/*,video/*,application/pdf"
+                          />
+                          <div 
+                            onClick={() => fileInputRef.current?.click()}
+                            className={`border-2 border-dashed rounded-2xl p-5 flex flex-col items-center justify-center gap-2 cursor-pointer transition ${
+                              uploadSuccess 
+                                ? 'border-emerald-500/35 bg-emerald-500/5' 
+                                : 'border-slate-200 bg-slate-50 hover:bg-slate-100/60'
+                            }`}
+                          >
+                            {isUploading ? (
+                              <div className="flex flex-col items-center gap-2">
+                                <div className="w-6 h-6 border-2 border-slate-350 border-t-[#ff9933] rounded-full animate-spin"></div>
+                                <span className="text-[10px] text-slate-500">Encrypting & uploading...</span>
+                              </div>
+                            ) : uploadSuccess ? (
+                              <div className="flex flex-col items-center gap-1.5">
+                                <div className="w-8 h-8 bg-emerald-500/10 rounded-full border border-emerald-500/30 flex items-center justify-center text-[#138808]">
+                                  <Check className="w-4 h-4" />
+                                </div>
+                                <span className="text-[11px] font-bold text-[#138808]">Evidence Uploaded Successfully</span>
+                              </div>
+                            ) : (
+                              <>
+                                <UploadCloud className="w-6 h-6 text-slate-400" />
+                                <span className="text-[11px] font-bold text-slate-800">Drag & drop or browse files</span>
+                                <span className="text-[9px] text-slate-500">Images, videos, or PDFs up to 50MB</span>
+                              </>
+                            )}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Section 4: Geotagging & Map (Collapsible, closed by default) */}
+                    <div className="border border-slate-200 rounded-2xl overflow-hidden">
+                      <button
+                        type="button"
+                        onClick={() => setIsMapOpen(!isMapOpen)}
+                        className="w-full flex justify-between items-center p-4 bg-slate-50 hover:bg-slate-100/60 transition text-left"
+                      >
+                        <div className="flex items-center gap-2 text-xs font-bold text-[#1b365d] uppercase tracking-wide">
+                          <MapPin className="w-4 h-4 text-[#ff9933]" />
+                          4. Incident Location Tagging {includeLocation && <span className="text-[#138808] text-[9px] lowercase font-bold">(active)</span>}
+                        </div>
+                        {isMapOpen ? <ChevronUp className="w-4 h-4 text-[#1b365d]" /> : <ChevronDown className="w-4 h-4 text-[#1b365d]" />}
+                      </button>
+
+                      {isMapOpen && (
+                        <div className="p-4 border-t border-slate-200 space-y-3 bg-white">
+                          <div className="flex justify-between items-center">
+                            <span className="text-[10px] text-slate-550">Attach precise GPS coordinates of where the incident took place. Click on the map to tag the exact coordinates.</span>
+                            <button
+                              type="button"
+                              onClick={handleGetLocation}
+                              className={`flex items-center gap-1.5 text-[10px] font-bold px-3 py-1 rounded-full border transition duration-200 flex-shrink-0 ${
+                                includeLocation 
+                                  ? 'bg-[#ff9933]/15 border-[#ff9933]/30 text-[#e68a2e]' 
+                                  : 'bg-slate-50 border-slate-200 text-slate-650 hover:bg-slate-100'
+                              }`}
+                            >
+                              <MapPin className="w-3 h-3" />
+                              {includeLocation ? 'Coordinates Attached' : 'Use My GPS'}
+                            </button>
+                          </div>
+                          {includeLocation && (
+                            <div className="space-y-2">
+                              <div className="h-[200px] rounded-xl overflow-hidden border border-slate-200">
+                                <MapContainer center={mapCenter} zoom={13} style={{ height: '100%', width: '100%' }}>
+                                  <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+                                  <Marker position={coordinates} />
+                                  <MapEvents />
+                                </MapContainer>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Section 5: AI Redaction Toggle (Collapsible) */}
+                    <div className="border border-slate-200 rounded-2xl overflow-hidden">
+                      <button
+                        type="button"
+                        onClick={() => setIsConsentOpen(!isConsentOpen)}
+                        className="w-full flex justify-between items-center p-4 bg-slate-50 hover:bg-slate-100/60 transition text-left"
+                      >
+                        <div className="flex items-center gap-2 text-xs font-bold text-[#1b365d] uppercase tracking-wide">
+                          <ShieldCheck className="w-4 h-4 text-[#ff9933]" />
+                          5. Privacy Redaction & Submission
+                        </div>
+                        {isConsentOpen ? <ChevronUp className="w-4 h-4 text-[#1b365d]" /> : <ChevronDown className="w-4 h-4 text-[#1b365d]" />}
+                      </button>
+
+                      {isConsentOpen && (
+                        <div className="p-4 border-t border-slate-200 space-y-4 bg-white">
+                          <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 flex items-center justify-between">
+                            <div className="flex items-center gap-3">
+                              <div className="p-2 bg-blue-500/10 border border-blue-500/25 rounded-lg">
+                                <ShieldAlert className="w-4 h-4 text-blue-600" />
+                              </div>
+                              <div>
+                                <div className="text-xs font-bold text-slate-800">Enable AI Privacy Redaction</div>
+                                <div className="text-[9px] text-slate-550 mt-0.5">Scrub names, phone numbers, and addresses dynamically.</div>
+                              </div>
+                            </div>
+                            <input
+                              type="checkbox"
+                              className="w-4 h-4 text-[#ff9933] border-slate-350 bg-white rounded focus:ring-[#ff9933]"
+                              checked={enableRedact}
+                              onChange={() => setEnableRedact(!enableRedact)}
+                            />
+                          </div>
+                        </div>
+                      )}
                     </div>
 
                     <button
@@ -752,7 +934,7 @@ export default function App() {
                       {submitting ? (
                         <>
                           <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-                          Scrubbing PII & Registering...
+                          PII Redaction & Submitting Incident...
                         </>
                       ) : (
                         <>
@@ -797,8 +979,8 @@ export default function App() {
                     </button>
                   </div>
                 ) : (
-                  <form onSubmit={handleFormSubmit} className="bg-white border border-slate-200 p-6 md:p-8 rounded-3xl space-y-6 shadow-md text-slate-800">
-                    <div className="space-y-1">
+                  <form onSubmit={handleFormSubmit} className="bg-white border border-slate-200 p-6 md:p-8 rounded-3xl space-y-4 shadow-md text-slate-800 animate-fade-in">
+                    <div className="space-y-1 pb-2">
                       <h3 className="text-sm font-extrabold text-[#1b365d] uppercase flex items-center gap-1.5">
                         <FileText className="w-4 h-4 text-[#ff9933]" />
                         Official Complainant Verified e-FIR Filing
@@ -808,185 +990,320 @@ export default function App() {
                       </p>
                     </div>
 
-                    {/* Complainant Identity Verification */}
-                    <div className="bg-[#ff9933]/5 p-5 rounded-2xl border border-[#ff9933]/20 space-y-4">
-                      <h4 className="text-xs font-bold uppercase text-[#ff9933] tracking-wider flex items-center gap-1.5">
-                        <User className="w-4 h-4 text-[#ff9933]" />
-                        Complainant Credentials
-                      </h4>
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        <div className="space-y-1.5">
-                          <label className="text-[10px] uppercase font-bold text-slate-500">Full Legal Name</label>
-                          <input
-                            type="text"
-                            required
-                            value={complainantName}
-                            onChange={(e) => setComplainantName(e.target.value)}
-                            placeholder="e.g. Rajesh Kumar"
-                            className="w-full bg-white border border-slate-200 focus:border-[#ff9933]/50 rounded-xl px-4 py-2.5 text-xs text-slate-800 placeholder-slate-400 outline-none transition"
-                          />
+                    {/* Section 1: Complainant Legal Credentials (Collapsible, starts closed) */}
+                    <div className="border border-slate-200 rounded-2xl overflow-hidden">
+                      <button
+                        type="button"
+                        onClick={() => setIsComplainantOpen(!isComplainantOpen)}
+                        className="w-full flex justify-between items-center p-4 bg-slate-50 hover:bg-slate-100/60 transition text-left"
+                      >
+                        <div className="flex items-center gap-2 text-xs font-bold text-[#1b365d] uppercase tracking-wide">
+                          <User className="w-4 h-4 text-[#ff9933]" />
+                          1. Complainant Personal Credentials {complainantName && <span className="text-[#138808] text-[9px] lowercase font-bold">(filled)</span>}
                         </div>
-                        <div className="space-y-1.5">
-                          <label className="text-[10px] uppercase font-bold text-slate-500">Contact Number / Email</label>
-                          <input
-                            type="text"
-                            required
-                            value={complainantContact}
-                            onChange={(e) => setComplainantContact(e.target.value)}
-                            placeholder="e.g. +91 98765 43210"
-                            className="w-full bg-white border border-slate-200 focus:border-[#ff9933]/50 rounded-xl px-4 py-2.5 text-xs text-slate-800 placeholder-slate-400 outline-none transition"
-                          />
-                        </div>
-                      </div>
+                        {isComplainantOpen ? <ChevronUp className="w-4 h-4 text-[#1b365d]" /> : <ChevronDown className="w-4 h-4 text-[#1b365d]" />}
+                      </button>
 
-                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 items-end">
-                        <div className="sm:col-span-1 space-y-1.5">
-                          <label className="text-[10px] uppercase font-bold text-slate-500">Govt ID Type</label>
-                          <select
-                            value={idType}
-                            onChange={(e) => setIdType(e.target.value)}
-                            className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2.5 text-xs text-slate-700 outline-none focus:border-[#ff9933]/50"
-                          >
-                            <option value="Aadhaar Card">Aadhaar Card</option>
-                            <option value="Passport">Passport</option>
-                            <option value="PAN Card">PAN Card</option>
-                            <option value="Voter ID">Voter ID</option>
-                          </select>
+                      {isComplainantOpen && (
+                        <div className="p-4 border-t border-slate-200 space-y-4 bg-white">
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div className="space-y-1.5">
+                              <label className="text-[10px] uppercase font-bold text-slate-500">Full Legal Name</label>
+                              <input
+                                type="text"
+                                required
+                                value={complainantName}
+                                onChange={(e) => setComplainantName(e.target.value)}
+                                placeholder="e.g. Rajesh Kumar"
+                                className="w-full bg-slate-55 border border-slate-200 focus:border-[#ff9933]/50 rounded-xl px-4 py-2.5 text-xs text-slate-800 placeholder-slate-400 outline-none transition"
+                              />
+                            </div>
+                            <div className="space-y-1.5">
+                              <label className="text-[10px] uppercase font-bold text-slate-500">Contact Number / Email</label>
+                              <input
+                                type="text"
+                                required
+                                value={complainantContact}
+                                onChange={(e) => setComplainantContact(e.target.value)}
+                                placeholder="e.g. +91 98765 43210"
+                                className="w-full bg-slate-55 border border-slate-200 focus:border-[#ff9933]/50 rounded-xl px-4 py-2.5 text-xs text-slate-800 placeholder-slate-400 outline-none transition"
+                              />
+                            </div>
+                          </div>
                         </div>
-                        
-                        <div className="sm:col-span-2 space-y-1.5">
-                          <label className="text-[10px] uppercase font-bold text-slate-500">Upload Govt ID Copy (PDF / Image)</label>
+                      )}
+                    </div>
+
+                    {/* Section 2: Government ID Verification (Collapsible, starts closed) */}
+                    <div className="border border-slate-200 rounded-2xl overflow-hidden">
+                      <button
+                        type="button"
+                        onClick={() => setIsGovIdOpen(!isGovIdOpen)}
+                        className="w-full flex justify-between items-center p-4 bg-slate-50 hover:bg-slate-100/60 transition text-left"
+                      >
+                        <div className="flex items-center gap-2 text-xs font-bold text-[#1b365d] uppercase tracking-wide">
+                          <UploadCloud className="w-4 h-4 text-[#ff9933]" />
+                          2. Government ID Document Verification {idUploadSuccess && <span className="text-[#138808] text-[9px] lowercase font-bold">(uploaded)</span>}
+                        </div>
+                        {isGovIdOpen ? <ChevronUp className="w-4 h-4 text-[#1b365d]" /> : <ChevronDown className="w-4 h-4 text-[#1b365d]" />}
+                      </button>
+
+                      {isGovIdOpen && (
+                        <div className="p-4 border-t border-slate-200 bg-white space-y-4">
+                          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 items-end">
+                            <div className="sm:col-span-1 space-y-1.5">
+                              <label className="text-[10px] uppercase font-bold text-slate-500">Govt ID Type</label>
+                              <select
+                                value={idType}
+                                onChange={(e) => setIdType(e.target.value)}
+                                className="w-full bg-slate-55 border border-slate-200 rounded-xl px-3 py-2.5 text-xs text-slate-705 outline-none focus:border-[#ff9933]/50"
+                              >
+                                <option value="Aadhaar Card">Aadhaar Card</option>
+                                <option value="Passport">Passport</option>
+                                <option value="PAN Card">PAN Card</option>
+                                <option value="Voter ID">Voter ID</option>
+                              </select>
+                            </div>
+                            
+                            <div className="sm:col-span-2 space-y-1.5">
+                              <label className="text-[10px] uppercase font-bold text-slate-500">Upload Govt ID Copy (PDF / Image)</label>
+                              <input
+                                type="file"
+                                ref={idFileInputRef}
+                                className="hidden"
+                                onChange={handleIdUpload}
+                                accept="image/*,application/pdf"
+                              />
+                              <button
+                                type="button"
+                                onClick={() => idFileInputRef.current?.click()}
+                                className={`w-full py-2.5 px-4 rounded-xl border text-xs font-semibold flex items-center justify-center gap-2 transition duration-200 ${
+                                  idUploadSuccess 
+                                    ? 'bg-emerald-500/10 border-emerald-500/30 text-[#138808]' 
+                                    : 'bg-slate-55 border-slate-200 text-slate-650 hover:bg-slate-50'
+                                }`}
+                              >
+                                {isUploadingId ? (
+                                  <div className="w-3.5 h-3.5 border-2 border-slate-300 border-t-[#ff9933] rounded-full animate-spin"></div>
+                                ) : (
+                                  <UploadCloud className="w-4 h-4 text-[#ff9933]" />
+                                )}
+                                {isUploadingId ? 'Uploading ID Document...' : idUploadSuccess ? 'Govt ID Document Verified' : 'Browse ID file'}
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Section 3: Incident Category (Collapsible) */}
+                    <div className="border border-slate-200 rounded-2xl overflow-hidden">
+                      <button
+                        type="button"
+                        onClick={() => setIsCategoryOpen(!isCategoryOpen)}
+                        className="w-full flex justify-between items-center p-4 bg-slate-50 hover:bg-slate-100/60 transition text-left"
+                      >
+                        <div className="flex items-center gap-2 text-xs font-bold text-[#1b365d] uppercase tracking-wide">
+                          <Flame className="w-4 h-4 text-[#ff9933]" />
+                          3. Incident Category
+                        </div>
+                        {isCategoryOpen ? <ChevronUp className="w-4 h-4 text-[#1b365d]" /> : <ChevronDown className="w-4 h-4 text-[#1b365d]" />}
+                      </button>
+
+                      {isCategoryOpen && (
+                        <div className="p-4 border-t border-slate-200 bg-white space-y-4">
+                          <div className="space-y-3">
+                            <label className="text-[10px] uppercase font-bold text-slate-500">Select Classification</label>
+                            <select
+                              value={selectedCategory}
+                              onChange={(e) => setSelectedCategory(e.target.value)}
+                              className="w-full bg-slate-55 border border-slate-200 rounded-xl px-3 py-3 text-xs text-slate-800 outline-none focus:border-[#ff9933]/50"
+                            >
+                              {CATEGORIES.map(cat => (
+                                <option key={cat.id} value={cat.id}>{cat.label}</option>
+                              ))}
+                            </select>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Section 4: Incident details (Title & description) (Collapsible) */}
+                    <div className="border border-slate-200 rounded-2xl overflow-hidden">
+                      <button
+                        type="button"
+                        onClick={() => setIsDescriptionOpen(!isDescriptionOpen)}
+                        className="w-full flex justify-between items-center p-4 bg-slate-50 hover:bg-slate-100/60 transition text-left"
+                      >
+                        <div className="flex items-center gap-2 text-xs font-bold text-[#1b365d] uppercase tracking-wide">
+                          <FileText className="w-4 h-4 text-[#ff9933]" />
+                          4. Incident Narrative Details
+                        </div>
+                        {isDescriptionOpen ? <ChevronUp className="w-4 h-4 text-[#1b365d]" /> : <ChevronDown className="w-4 h-4 text-[#1b365d]" />}
+                      </button>
+
+                      {isDescriptionOpen && (
+                        <div className="p-4 border-t border-slate-200 bg-white space-y-4">
+                          <div className="space-y-1.5">
+                            <label className="text-[11px] text-slate-500 font-semibold">Incident Title</label>
+                            <input
+                              type="text"
+                              required
+                              value={title}
+                              onChange={(e) => setTitle(e.target.value)}
+                              placeholder="Brief legal summary of complaint"
+                              className="w-full bg-slate-55 border border-slate-200 focus:border-[#ff9933]/50 rounded-xl px-4 py-3 text-xs text-slate-800 placeholder-slate-400 outline-none transition"
+                            />
+                          </div>
+
+                          <div className="space-y-1.5">
+                            <label className="text-[11px] text-slate-500 font-semibold">Legal Incident Statement (Unaltered Description)</label>
+                            <textarea
+                              rows={4}
+                              required
+                              value={description}
+                              onChange={(e) => setDescription(e.target.value)}
+                              placeholder="Please detail the incident precisely. Mention dates, times, names of suspects if known, and specific order of events."
+                              className="w-full bg-slate-55 border border-slate-200 focus:border-[#ff9933]/50 rounded-xl px-4 py-3 text-xs text-slate-855 placeholder-slate-400 outline-none transition resize-none font-sans"
+                            />
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Section 5: Evidentiary files upload (Collapsible, starts closed) */}
+                    <div className="border border-slate-200 rounded-2xl overflow-hidden">
+                      <button
+                        type="button"
+                        onClick={() => setIsEvidenceOpen(!isEvidenceOpen)}
+                        className="w-full flex justify-between items-center p-4 bg-slate-50 hover:bg-slate-100/60 transition text-left"
+                      >
+                        <div className="flex items-center gap-2 text-xs font-bold text-[#1b365d] uppercase tracking-wide">
+                          <UploadCloud className="w-4 h-4 text-[#ff9933]" />
+                          5. Attach Evidentiary Files {evidenceUrl && <span className="text-[#138808] text-[9px] lowercase font-bold">(uploaded)</span>}
+                        </div>
+                        {isEvidenceOpen ? <ChevronUp className="w-4 h-4 text-[#1b365d]" /> : <ChevronDown className="w-4 h-4 text-[#1b365d]" />}
+                      </button>
+
+                      {isEvidenceOpen && (
+                        <div className="p-4 border-t border-slate-200 bg-white space-y-3">
+                          <p className="text-[10px] text-slate-500">Provide photos, screenshots, videos or documents backing up the incident statement. Encrypted inside secure cloud buckets.</p>
                           <input
                             type="file"
-                            ref={idFileInputRef}
+                            ref={fileInputRef}
                             className="hidden"
-                            onChange={handleIdUpload}
-                            accept="image/*,application/pdf"
+                            onChange={handleFileUpload}
+                            accept="image/*,video/*,application/pdf"
                           />
-                          <button
-                            type="button"
-                            onClick={() => idFileInputRef.current?.click()}
-                            className={`w-full py-2.5 px-4 rounded-xl border text-xs font-semibold flex items-center justify-center gap-2 transition duration-200 ${
-                              idUploadSuccess 
-                                ? 'bg-emerald-500/10 border-emerald-500/30 text-[#138808]' 
-                                : 'bg-white border-slate-200 text-slate-650 hover:bg-slate-50'
+                          <div 
+                            onClick={() => fileInputRef.current?.click()}
+                            className={`border-2 border-dashed rounded-2xl p-5 flex flex-col items-center justify-center gap-2 cursor-pointer transition ${
+                              uploadSuccess 
+                                ? 'border-emerald-500/35 bg-emerald-500/5' 
+                                : 'border-slate-200 bg-slate-55 hover:bg-slate-100/60'
                             }`}
                           >
-                            {isUploadingId ? (
-                              <div className="w-3.5 h-3.5 border-2 border-slate-300 border-t-[#ff9933] rounded-full animate-spin"></div>
+                            {isUploading ? (
+                              <div className="flex flex-col items-center gap-2">
+                                <div className="w-6 h-6 border-2 border-slate-350 border-t-[#ff9933] rounded-full animate-spin"></div>
+                                <span className="text-[10px] text-slate-500">Uploading secure payload...</span>
+                              </div>
+                            ) : uploadSuccess ? (
+                              <div className="flex flex-col items-center gap-1.5">
+                                <div className="w-8 h-8 bg-emerald-500/10 rounded-full border border-emerald-500/30 flex items-center justify-center text-[#138808]">
+                                  <Check className="w-4 h-4" />
+                                </div>
+                                <span className="text-[11px] font-bold text-[#138808]">Evidence Uploaded successfully</span>
+                              </div>
                             ) : (
-                              <UploadCloud className="w-4 h-4 text-[#ff9933]" />
+                              <>
+                                <UploadCloud className="w-6 h-6 text-slate-400" />
+                                <span className="text-[11px] font-bold text-slate-800">Drag & drop or browse files</span>
+                                <span className="text-[9px] text-slate-500">Attach photos, videos, or legal PDFs</span>
+                              </>
                             )}
-                            {isUploadingId ? 'Uploading ID Document...' : idUploadSuccess ? 'Govt ID Document Verified' : 'Browse ID file'}
-                          </button>
+                          </div>
                         </div>
-                      </div>
+                      )}
                     </div>
 
-                    {/* Incident specifications */}
-                    <div className="space-y-4 pt-2">
-                      <div className="space-y-3">
-                        <label className="text-xs font-bold uppercase tracking-wider text-slate-450">1. Incident Category</label>
-                        <select
-                          value={selectedCategory}
-                          onChange={(e) => setSelectedCategory(e.target.value)}
-                          className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-3 text-xs text-slate-800 outline-none focus:border-[#ff9933]/50"
-                        >
-                          {CATEGORIES.map(cat => (
-                            <option key={cat.id} value={cat.id}>{cat.label}</option>
-                          ))}
-                        </select>
-                      </div>
-
-                      <div className="space-y-1.5">
-                        <label className="text-[11px] text-slate-500 font-semibold">Incident Title</label>
-                        <input
-                          type="text"
-                          required
-                          value={title}
-                          onChange={(e) => setTitle(e.target.value)}
-                          placeholder="Brief legal summary of complaint"
-                          className="w-full bg-slate-50 border border-slate-200 focus:border-[#ff9933]/50 rounded-xl px-4 py-3 text-xs text-slate-800 placeholder-slate-400 outline-none transition"
-                        />
-                      </div>
-
-                      <div className="space-y-1.5">
-                        <label className="text-[11px] text-slate-500 font-semibold">Legal Incident Statement (Unaltered Description)</label>
-                        <textarea
-                          rows={4}
-                          required
-                          value={description}
-                          onChange={(e) => setDescription(e.target.value)}
-                          placeholder="Please detail the incident precisely. Mention dates, times, names of suspects if known, and specific order of events."
-                          className="w-full bg-slate-50 border border-slate-200 focus:border-[#ff9933]/50 rounded-xl px-4 py-3 text-xs text-slate-850 placeholder-slate-400 outline-none transition resize-none font-sans"
-                        />
-                      </div>
-                    </div>
-
-                    {/* Step 3: Evidence Upload */}
-                    <div className="space-y-3">
-                      <h3 className="text-xs font-bold uppercase tracking-wider text-slate-455">3. Attach Evidentiary Files</h3>
-                      <input
-                        type="file"
-                        ref={fileInputRef}
-                        className="hidden"
-                        onChange={handleFileUpload}
-                        accept="image/*,video/*,application/pdf"
-                      />
-                      <div 
-                        onClick={() => fileInputRef.current?.click()}
-                        className={`border-2 border-dashed rounded-2xl p-5 flex flex-col items-center justify-center gap-2 cursor-pointer transition ${
-                          uploadSuccess 
-                            ? 'border-emerald-500/35 bg-emerald-500/5' 
-                            : 'border-slate-200 bg-slate-50 hover:bg-slate-100/60'
-                        }`}
+                    {/* Section 6: Geotag Location Map (Collapsible, starts closed) */}
+                    <div className="border border-slate-200 rounded-2xl overflow-hidden">
+                      <button
+                        type="button"
+                        onClick={() => setIsMapOpen(!isMapOpen)}
+                        className="w-full flex justify-between items-center p-4 bg-slate-50 hover:bg-slate-100/60 transition text-left"
                       >
-                        {isUploading ? (
-                          <div className="flex flex-col items-center gap-2">
-                            <div className="w-6 h-6 border-2 border-slate-350 border-t-[#ff9933] rounded-full animate-spin"></div>
-                            <span className="text-[10px] text-slate-500">Uploading secure payload...</span>
+                        <div className="flex items-center gap-2 text-xs font-bold text-[#1b365d] uppercase tracking-wide">
+                          <MapPin className="w-4 h-4 text-[#ff9933]" />
+                          6. Incident Location Tagging {includeLocation && <span className="text-[#138808] text-[9px] lowercase font-bold">(active)</span>}
+                        </div>
+                        {isMapOpen ? <ChevronUp className="w-4 h-4 text-[#1b365d]" /> : <ChevronDown className="w-4 h-4 text-[#1b365d]" />}
+                      </button>
+
+                      {isMapOpen && (
+                        <div className="p-4 border-t border-slate-200 bg-white space-y-3">
+                          <div className="flex justify-between items-center">
+                            <span className="text-[10px] text-slate-550">Attach coordinates to register local municipal cyber jurisdiction. Click on the map to pin a location.</span>
+                            <button
+                              type="button"
+                              onClick={handleGetLocation}
+                              className={`flex items-center gap-1.5 text-[10px] font-bold px-3 py-1 rounded-full border transition duration-200 flex-shrink-0 ${
+                                includeLocation 
+                                  ? 'bg-[#ff9933]/15 border-[#ff9933]/30 text-[#e68a2e]' 
+                                  : 'bg-slate-55 border-slate-200 text-slate-655 hover:bg-slate-100'
+                              }`}
+                            >
+                              <MapPin className="w-3 h-3" />
+                              {includeLocation ? 'Coordinates Attached' : 'Attach Coordinates'}
+                            </button>
                           </div>
-                        ) : uploadSuccess ? (
-                          <div className="flex flex-col items-center gap-1.5">
-                            <div className="w-8 h-8 bg-emerald-500/10 rounded-full border border-emerald-500/30 flex items-center justify-center text-[#138808]">
-                              <Check className="w-4 h-4" />
+                          {includeLocation && (
+                            <div className="h-[200px] rounded-xl overflow-hidden border border-slate-200">
+                              <MapContainer center={mapCenter} zoom={13} style={{ height: '100%', width: '100%' }}>
+                                <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+                                <Marker position={coordinates} />
+                                <MapEvents />
+                              </MapContainer>
                             </div>
-                            <span className="text-[11px] font-bold text-[#138808]">Evidence Uploaded successfully</span>
-                          </div>
-                        ) : (
-                          <>
-                            <UploadCloud className="w-6 h-6 text-slate-400" />
-                            <span className="text-[11px] font-bold text-slate-800">Drag & drop or browse files</span>
-                            <span className="text-[9px] text-slate-500">Attach photos, videos, or legal PDFs</span>
-                          </>
-                        )}
-                      </div>
+                          )}
+                        </div>
+                      )}
                     </div>
 
-                    {/* Step 4: Geotag Location */}
-                    <div className="space-y-3">
-                      <div className="flex justify-between items-center">
-                        <h3 className="text-xs font-bold uppercase tracking-wider text-slate-450">4. Incident Location Tag</h3>
-                        <button
-                          type="button"
-                          onClick={handleGetLocation}
-                          className={`flex items-center gap-1.5 text-[10px] font-bold px-3 py-1 rounded-full border transition duration-200 ${
-                            includeLocation 
-                              ? 'bg-amber-500/15 border-amber-500/30 text-amber-600' 
-                              : 'bg-slate-50 border-slate-200 text-slate-650 hover:bg-slate-100'
-                          }`}
-                        >
-                          <MapPin className="w-3 h-3" />
-                          {includeLocation ? 'Coordinates Attached' : 'Attach Coordinates'}
-                        </button>
-                      </div>
-                      {includeLocation && (
-                        <div className="h-[200px] rounded-xl overflow-hidden border border-slate-200">
-                          <MapContainer center={mapCenter} zoom={13} style={{ height: '100%', width: '100%' }}>
-                            <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
-                            <Marker position={coordinates} />
-                            <MapEvents />
-                          </MapContainer>
+                    {/* Section 7: Redaction and Submission Consent */}
+                    <div className="border border-slate-200 rounded-2xl overflow-hidden">
+                      <button
+                        type="button"
+                        onClick={() => setIsConsentOpen(!isConsentOpen)}
+                        className="w-full flex justify-between items-center p-4 bg-slate-50 hover:bg-slate-100/60 transition text-left"
+                      >
+                        <div className="flex items-center gap-2 text-xs font-bold text-[#1b365d] uppercase tracking-wide">
+                          <ShieldCheck className="w-4 h-4 text-[#ff9933]" />
+                          7. Legal Consent & Submission
+                        </div>
+                        {isConsentOpen ? <ChevronUp className="w-4 h-4 text-[#1b365d]" /> : <ChevronDown className="w-4 h-4 text-[#1b365d]" />}
+                      </button>
+
+                      {isConsentOpen && (
+                        <div className="p-4 border-t border-slate-200 bg-white space-y-3">
+                          <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 flex items-center justify-between">
+                            <div className="flex items-center gap-3">
+                              <div className="p-2 bg-blue-500/10 border border-blue-500/25 rounded-lg">
+                                <ShieldCheck className="w-4 h-4 text-blue-600" />
+                              </div>
+                              <div>
+                                <div className="text-xs font-bold text-slate-800">Enable AI Privacy Redaction</div>
+                                <div className="text-[9px] text-slate-550 mt-0.5">Scrub names and PII details from official logs automatically.</div>
+                              </div>
+                            </div>
+                            <input
+                              type="checkbox"
+                              className="w-4 h-4 text-[#ff9933] border-slate-350 bg-white rounded focus:ring-[#ff9933]"
+                              checked={enableRedact}
+                              onChange={() => setEnableRedact(!enableRedact)}
+                            />
+                          </div>
                         </div>
                       )}
                     </div>
@@ -1382,47 +1699,130 @@ export default function App() {
               </motion.div>
             )}
           </AnimatePresence>
-          
-        </div>
-      </div>
+             </div>
 
-      {/* Accordion FAQ Section */}
-      <div className="bg-white border border-slate-200 p-6 md:p-8 rounded-3xl space-y-4 shadow-md max-w-6xl mx-auto text-slate-800">
-        <h3 className="text-sm font-bold text-[#1b365d] uppercase tracking-wider flex items-center gap-2">
-          <HelpCircle className="w-4 h-4 text-[#ff9933]" />
-          Frequently Asked Questions (Citizen Portal Information)
-        </h3>
-        <div className="space-y-2.5">
-          {FAQS.map((faq, idx) => {
-            const isOpen = openFaq === idx;
-            return (
-              <div key={idx} className="border-b border-slate-200 pb-2.5 last:border-b-0 last:pb-0">
-                <button
-                  type="button"
-                  onClick={() => setOpenFaq(isOpen ? null : idx)}
-                  className="w-full flex justify-between items-center text-left py-2 text-xs font-semibold text-slate-700 hover:text-slate-900 transition duration-200"
+        {/* Right Column: Advisories, Circulars & FAQs */}
+        <div className="lg:col-span-3 space-y-6">
+          
+          {/* MHA Security Advisories */}
+          <div className="bg-white border-t-4 border-t-[#ff9933] border-x border-b border-slate-200 p-5 rounded-2xl space-y-4 shadow-md text-slate-800 relative overflow-hidden">
+            <div className="absolute right-[-10px] bottom-[-10px] w-20 h-20 opacity-5 pointer-events-none">
+              <img
+                src="https://upload.wikimedia.org/wikipedia/commons/5/59/Emblem_of_India.svg"
+                alt=""
+                className="w-full h-full"
+              />
+            </div>
+            <div className="flex items-center gap-2">
+              <ShieldAlert className="w-4 h-4 text-[#ff9933]" />
+              <h3 className="text-xs font-bold text-[#1b365d] uppercase tracking-wider">
+                Advisories & Bulletins
+              </h3>
+            </div>
+            <p className="text-[10px] text-slate-550 leading-relaxed">
+              Recent safety bulletins dispatched by the Ministry of Home Affairs Cyber Division:
+            </p>
+            <div className="space-y-2.5">
+              {ADVISORIES.map(adv => (
+                <div key={adv.id} className="p-3 bg-slate-50 rounded-xl border border-slate-200 space-y-1.5 hover:shadow-sm transition">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[8px] font-mono text-slate-400">{adv.date}</span>
+                    <span className={`text-[8px] font-bold px-1.5 py-0.5 rounded ${
+                      adv.severity === 'Critical' 
+                        ? 'bg-red-500/10 text-red-600 border border-red-500/20' 
+                        : adv.severity === 'High'
+                          ? 'bg-amber-500/10 text-amber-600 border border-amber-500/20'
+                          : 'bg-blue-500/10 text-blue-600 border border-blue-500/20'
+                    }`}>
+                      {adv.severity}
+                    </span>
+                  </div>
+                  <h4 className="text-[10px] font-bold text-[#1b365d] hover:underline cursor-pointer leading-snug">
+                    {adv.title}
+                  </h4>
+                  <p className="text-[9px] text-slate-550 leading-relaxed font-medium">
+                    {adv.desc}
+                  </p>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Legal Acts & Circulars */}
+          <div className="bg-white border-t-4 border-t-blue-600 border-x border-b border-slate-200 p-5 rounded-2xl space-y-4 shadow-md text-slate-800">
+            <div className="flex items-center gap-2">
+              <FileText className="w-4 h-4 text-blue-600" />
+              <h3 className="text-xs font-bold text-[#1b365d] uppercase tracking-wider">
+                Acts & Official Circulars
+              </h3>
+            </div>
+            <p className="text-[10px] text-slate-550 leading-relaxed">
+              Download national standards, cyber laws, and standard operating procedures (SOPs):
+            </p>
+            <div className="space-y-2">
+              {CIRCULARS.map((cir, idx) => (
+                <a
+                  key={idx}
+                  href="#"
+                  onClick={(e) => { e.preventDefault(); alert(`Downloading ${cir.title}...`); }}
+                  className="flex items-start gap-2.5 p-2.5 bg-slate-50 hover:bg-blue-500/5 border border-slate-200 hover:border-blue-500/20 rounded-xl transition group text-left w-full"
                 >
-                  <span>{faq.q}</span>
-                  {isOpen ? <ChevronUp className="w-3.5 h-3.5 text-slate-400" /> : <ChevronDown className="w-3.5 h-3.5 text-slate-400" />}
-                </button>
-                <AnimatePresence initial={false}>
-                  {isOpen && (
-                    <motion.div
-                      initial={{ height: 0, opacity: 0 }}
-                      animate={{ height: 'auto', opacity: 1 }}
-                      exit={{ height: 0, opacity: 0 }}
-                      transition={{ duration: 0.2 }}
-                      className="overflow-hidden"
+                  <div className="p-1.5 bg-blue-500/10 text-blue-600 rounded-lg group-hover:bg-blue-500 group-hover:text-white transition mt-0.5">
+                    <FileText className="w-3.5 h-3.5" />
+                  </div>
+                  <div className="flex-grow min-w-0">
+                    <div className="text-[10px] font-semibold text-slate-700 group-hover:text-[#1b365d] transition truncate">
+                      {cir.title}
+                    </div>
+                    <div className="text-[8px] text-slate-400 mt-0.5 font-medium">{cir.size} • PDF Document</div>
+                  </div>
+                </a>
+              ))}
+            </div>
+          </div>
+
+          {/* Citizen FAQs (Accordion inside Sidebar) */}
+          <div className="bg-white border-t-4 border-t-[#138808] border-x border-b border-slate-200 p-5 rounded-2xl space-y-4 shadow-md text-slate-800">
+            <div className="flex items-center gap-2">
+              <HelpCircle className="w-4 h-4 text-[#138808]" />
+              <h3 className="text-xs font-bold text-[#1b365d] uppercase tracking-wider">
+                Citizen FAQs
+              </h3>
+            </div>
+            <div className="space-y-2">
+              {FAQS.map((faq, idx) => {
+                const isOpen = openFaq === idx;
+                return (
+                  <div key={idx} className="border-b border-slate-150 pb-2 last:border-b-0 last:pb-0">
+                    <button
+                      type="button"
+                      onClick={() => setOpenFaq(isOpen ? null : idx)}
+                      className="w-full flex justify-between items-center text-left py-1.5 text-[10px] font-bold text-slate-700 hover:text-[#1b365d] transition duration-200"
                     >
-                      <p className="text-[10px] text-slate-500 leading-relaxed pt-1 pb-2 font-medium">
-                        {faq.a}
-                      </p>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-              </div>
-            );
-          })}
+                      <span className="pr-2">{faq.q}</span>
+                      {isOpen ? <ChevronUp className="w-3 h-3 text-slate-400 flex-shrink-0" /> : <ChevronDown className="w-3 h-3 text-slate-400 flex-shrink-0" />}
+                    </button>
+                    <AnimatePresence initial={false}>
+                      {isOpen && (
+                        <motion.div
+                          initial={{ height: 0, opacity: 0 }}
+                          animate={{ height: 'auto', opacity: 1 }}
+                          exit={{ height: 0, opacity: 0 }}
+                          transition={{ duration: 0.2 }}
+                          className="overflow-hidden"
+                        >
+                          <p className="text-[9px] text-slate-550 leading-relaxed pt-0.5 pb-1.5 font-medium">
+                            {faq.a}
+                          </p>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
         </div>
       </div>
 
