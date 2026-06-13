@@ -119,6 +119,15 @@ async function initDatabase() {
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       );
     `);
+    
+    // Add new columns dynamically for e-FIR support
+    await query(`
+      ALTER TABLE reports ADD COLUMN IF NOT EXISTS report_type VARCHAR(50) DEFAULT 'anonymous';
+      ALTER TABLE reports ADD COLUMN IF NOT EXISTS identity_document_url TEXT;
+      ALTER TABLE reports ADD COLUMN IF NOT EXISTS complainant_name VARCHAR(255);
+      ALTER TABLE reports ADD COLUMN IF NOT EXISTS complainant_contact VARCHAR(255);
+    `);
+    
     console.log('✅ PostgreSQL reports table initialized successfully in Cloud.');
   } catch (err) {
     console.error('❌ Database initialization failed:', err.message);

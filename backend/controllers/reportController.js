@@ -46,17 +46,32 @@ function localFallbackAnalyze(description) {
 
 async function submitReport(req, res) {
   try {
-    const { title, description, evidence_url, category, latitude, longitude, enable_redact } = req.body;
+    const { 
+      title, 
+      description, 
+      evidence_url, 
+      category, 
+      latitude, 
+      longitude, 
+      enable_redact,
+      report_type,
+      identity_document_url,
+      complainant_name,
+      complainant_contact
+    } = req.body;
     
     if (!title || !description) {
       return res.status(400).json({ error: 'Title and description are required' });
     }
 
+    // Official legal FIRs should bypass identity data scrubbing to preserve facts
+    const actualRedact = report_type === 'fir' ? false : (enable_redact !== false);
+
     let finalDescription = description;
     let summary = 'Anonymous incident reported.';
     let severity = 'Medium';
 
-    if (enable_redact && openai) {
+    if (actualRedact && openai) {
       try {
         const response = await openai.chat.completions.create({
           model: "gpt-4o-mini",
@@ -90,7 +105,7 @@ async function submitReport(req, res) {
       }
     } else {
       const localAnalysis = localFallbackAnalyze(description);
-      finalDescription = enable_redact ? localAnalysis.description : description;
+      finalDescription = actualRedact ? localAnalysis.description : description;
       summary = localAnalysis.summary;
       severity = localAnalysis.severity;
     }
@@ -103,7 +118,11 @@ async function submitReport(req, res) {
       severity,
       latitude,
       longitude,
-      redacted: enable_redact
+      redacted: actualRedact,
+      report_type: report_type || 'anonymous',
+      identity_document_url: identity_document_url || null,
+      complainant_name: complainant_name || null,
+      complainant_contact: complainant_contact || null
     });
 
     res.status(201).json({ message: 'Report submitted successfully', report });

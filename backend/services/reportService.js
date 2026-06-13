@@ -1,9 +1,9 @@
 import { query } from '../config/db.js';
 
-async function insertReport({ title, description, evidence_url, category, severity, latitude, longitude, redacted }) {
+async function insertReport({ title, description, evidence_url, category, severity, latitude, longitude, redacted, report_type, identity_document_url, complainant_name, complainant_contact }) {
   const sql = `
-    INSERT INTO reports (title, description, evidence_url, category, severity, status, latitude, longitude, redacted)
-    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+    INSERT INTO reports (title, description, evidence_url, category, severity, status, latitude, longitude, redacted, report_type, identity_document_url, complainant_name, complainant_contact)
+    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
     RETURNING *
   `;
   const params = [
@@ -15,7 +15,11 @@ async function insertReport({ title, description, evidence_url, category, severi
     'Submitted',
     latitude ? parseFloat(latitude) : null,
     longitude ? parseFloat(longitude) : null,
-    redacted ? true : false
+    redacted ? true : false,
+    report_type || 'anonymous',
+    identity_document_url || null,
+    complainant_name || null,
+    complainant_contact || null
   ];
   
   const result = await query(sql, params);

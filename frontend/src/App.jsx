@@ -25,7 +25,12 @@ import {
   Calendar,
   Clock,
   Printer,
-  ShieldCheck
+  ShieldCheck,
+  User,
+  ShieldX,
+  CheckCircle2,
+  ChevronRight,
+  ExternalLink
 } from 'lucide-react';
 import { MapContainer, TileLayer, Marker, useMapEvents } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
@@ -53,27 +58,27 @@ const CATEGORIES = [
 const FAQS = [
   {
     q: 'How is my anonymity guaranteed?',
-    a: 'SpeakUp does not log IP addresses, browser headers, or session cookies. Reports are stored securely and encrypted. Our reverse proxy completely strips transmission headers before saving database records.'
+    a: 'For Anonymous Reports, SpeakUp does not log IP addresses, browser headers, or cookies. Our reverse proxy completely strips transmission headers before saving database records.'
   },
   {
-    q: 'What does AI Privacy Redaction do?',
-    a: 'If enabled, the description is scanned prior to saving. Personal names, specific address details, phone numbers, or email addresses are automatically scrubbed and replaced with [REDACTED] to protect your identity.'
+    q: 'What is the difference between an Anonymous Report and an e-FIR?',
+    a: 'An Anonymous Report scrubs your identity completely and is used for intelligence gathering. An e-FIR (First Information Report) is an official legal complaint that requires identity verification (Gov ID upload) and complainant contact details, which are kept strictly confidential under high-grade database encryption.'
   },
   {
     q: 'Who accesses these reports?',
     a: 'Verified law enforcement officials and security personnel review submitted reports inside their dedicated secure portal to initiate investigations or take necessary actions.'
   },
   {
-    q: 'Can I edit or delete my report after submitting?',
-    a: 'To guarantee absolute anonymity, there are no accounts or edit capabilities. If you have updates or additional evidence, submit a new report and mention the previous Report ID (#SPK-xx) in your description.'
+    q: 'Can I track the progress of an anonymous report or an e-FIR?',
+    a: 'Yes. Upon successful submission, you receive a Secure Case File Key (e.g. #SPK-12 or #FIR-105). Input this key in the "Track Case Status" panel to inspect active investigation logs and remarks.'
   }
 ];
 
 export default function App() {
   // Navigation tabs within Citizen view
-  const [activeTab, setActiveTab] = useState('report'); // 'report' | 'track'
+  const [activeTab, setActiveTab] = useState('report'); // 'report' | 'fir' | 'track' | 'registry'
 
-  // Form States
+  // General Form States
   const [selectedCategory, setSelectedCategory] = useState('Crime & Violence');
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
@@ -84,6 +89,14 @@ export default function App() {
   const [includeLocation, setIncludeLocation] = useState(false);
   const [coordinates, setCoordinates] = useState([28.6139, 77.2090]); // Default CP Delhi
   const [mapCenter, setMapCenter] = useState([28.6139, 77.2090]);
+
+  // e-FIR specific complainant states
+  const [complainantName, setComplainantName] = useState('');
+  const [complainantContact, setComplainantContact] = useState('');
+  const [idType, setIdType] = useState('Aadhaar Card');
+  const [idDocumentUrl, setIdDocumentUrl] = useState('');
+  const [isUploadingId, setIsUploadingId] = useState(false);
+  const [idUploadSuccess, setIdUploadSuccess] = useState(false);
 
   // UI States
   const [isRecording, setIsRecording] = useState(false);
@@ -98,10 +111,18 @@ export default function App() {
   const [isTrackingLoading, setIsTrackingLoading] = useState(false);
   const [trackingError, setTrackingError] = useState('');
 
+  // Public Registry States
+  const [registryReports, setRegistryReports] = useState([]);
+  const [registryLoading, setRegistryLoading] = useState(false);
+  const [selectedRegistryReport, setSelectedRegistryReport] = useState(null);
+  const [filterRegCategory, setFilterRegCategory] = useState('All');
+  const [filterRegStatus, setFilterRegStatus] = useState('All');
+
   // FAQ States
   const [openFaq, setOpenFaq] = useState(null);
 
   const fileInputRef = useRef(null);
+  const idFileInputRef = useRef(null);
 
   // Speech Recognition setup
   const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -132,6 +153,28 @@ export default function App() {
       recognitionRef.current = rec;
     }
   }, [SpeechRecognition]);
+
+  // Fetch Public Registry cases when tab is selected
+  useEffect(() => {
+    if (activeTab === 'registry') {
+      fetchRegistryReports();
+    }
+  }, [activeTab]);
+
+  const fetchRegistryReports = async () => {
+    setRegistryLoading(true);
+    try {
+      const res = await axios.get(`${API_URL}/api/reports`);
+      setRegistryReports(res.data);
+      if (res.data.length > 0) {
+        setSelectedRegistryReport(res.data[0]);
+      }
+    } catch (err) {
+      console.error('Failed to fetch registry logs:', err);
+    } finally {
+      setRegistryLoading(false);
+    }
+  };
 
   const toggleRecording = () => {
     if (!recognitionRef.current) {
@@ -177,7 +220,7 @@ export default function App() {
     return null;
   }
 
-  // Handle Multer upload
+  // Handle upload of evidence file
   const handleFileUpload = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
@@ -201,12 +244,47 @@ export default function App() {
     }
   };
 
-  // Handle form submit
+  // Handle upload of Complainant Government ID Document
+  const handleIdUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    setIsUploadingId(true);
+    setIdUploadSuccess(false);
+
+    const formData = new FormData();
+    formData.append('evidence', file);
+
+    try {
+      const res = await axios.post(`${API_URL}/api/upload`, formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
+      setIdDocumentUrl(res.data.fileUrl);
+      setIdUploadSuccess(true);
+    } catch (err) {
+      alert('Identity document upload failed: ' + (err.response?.data?.error || err.message));
+    } finally {
+      setIsUploadingId(false);
+    }
+  };
+
+  // Handle form submit (Both Anonymous Report & e-FIR)
   const handleFormSubmit = async (e) => {
     e.preventDefault();
     if (!title.trim() || !description.trim()) {
       alert('Please fill out the Title and Description.');
       return;
+    }
+
+    if (activeTab === 'fir') {
+      if (!complainantName.trim() || !complainantContact.trim()) {
+        alert('Please fill out Complainant Name and Contact details.');
+        return;
+      }
+      if (!idDocumentUrl) {
+        alert('Please upload a Government ID verification document for the e-FIR.');
+        return;
+      }
     }
 
     setSubmitting(true);
@@ -219,34 +297,41 @@ export default function App() {
         category: selectedCategory,
         latitude: includeLocation ? coordinates[0] : null,
         longitude: includeLocation ? coordinates[1] : null,
-        enable_redact: enableRedact
+        enable_redact: activeTab === 'report' ? enableRedact : false,
+        report_type: activeTab, // 'report' (anonymous) or 'fir'
+        identity_document_url: activeTab === 'fir' ? idDocumentUrl : null,
+        complainant_name: activeTab === 'fir' ? complainantName : null,
+        complainant_contact: activeTab === 'fir' ? complainantContact : null
       };
 
       const res = await axios.post(`${API_URL}/api/reports`, payload);
       setReportSuccess(res.data.report);
       confetti({ particleCount: 150, spread: 80, origin: { y: 0.6 } });
 
-      // Clear form
+      // Clear forms
       setTitle('');
       setDescription('');
       setEvidenceUrl('');
       setUploadSuccess(false);
       setIncludeLocation(false);
+      setComplainantName('');
+      setComplainantContact('');
+      setIdDocumentUrl('');
+      setIdUploadSuccess(false);
     } catch (err) {
-      alert('Failed to submit report: ' + (err.response?.data?.error || err.message));
+      alert('Failed to submit: ' + (err.response?.data?.error || err.message));
     } finally {
       setSubmitting(false);
     }
   };
 
-  // Handle Search for report status
+  // Handle Search for case status
   const handleSearchReport = async (e) => {
     if (e) e.preventDefault();
 
-    // Extract numbers from something like "#SPK-15" or just "15"
     const parsedId = searchId.replace(/\D/g, '');
     if (!parsedId) {
-      setTrackingError('Please enter a valid numeric Report ID.');
+      setTrackingError('Please enter a valid numeric Case ID.');
       setTrackedReport(null);
       return;
     }
@@ -260,9 +345,9 @@ export default function App() {
       setTrackedReport(res.data);
     } catch (err) {
       if (err.response && err.response.status === 404) {
-        setTrackingError('No active record found matching this Report ID.');
+        setTrackingError('No active case records found matching this identifier.');
       } else {
-        setTrackingError('Failed to retrieve case status. Please try again later.');
+        setTrackingError('Failed to retrieve case status. Please try again.');
       }
     } finally {
       setIsTrackingLoading(false);
@@ -286,10 +371,17 @@ export default function App() {
     { label: 'Resolved', desc: 'Investigation concluded and case closed.' }
   ];
 
+  // Filter Registry Reports
+  const filteredRegReports = registryReports.filter(rep => {
+    const matchCat = filterRegCategory === 'All' || rep.category === filterRegCategory;
+    const matchStat = filterRegStatus === 'All' || rep.status === filterRegStatus;
+    return matchCat && matchStat;
+  });
+
   return (
     <div className="w-full space-y-10">
       
-      {/* 2-Column Grid Layout: Main Workspace and Sidebar */}
+      {/* 2-Column Grid Layout: Side Info Column and Main Action Frame */}
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-8 items-start">
         
         {/* Left Column: Helplines & Security Seals */}
@@ -374,9 +466,9 @@ export default function App() {
                   <UserCheck className="w-3.5 h-3.5" />
                 </div>
                 <div>
-                  <h4 className="text-[11px] font-bold text-white">AI Redaction Tunnel</h4>
+                  <h4 className="text-[11px] font-bold text-white">Identity Protection</h4>
                   <p className="text-[9px] text-slate-400 leading-normal mt-0.5">
-                    Scrubs personal data (names, emails, cell numbers) to keep description text identity-safe.
+                    Anonymous reports scrub personal names. e-FIR complainant details are strictly encrypted.
                   </p>
                 </div>
               </div>
@@ -386,52 +478,71 @@ export default function App() {
                   <ShieldCheck className="w-3.5 h-3.5" />
                 </div>
                 <div>
-                  <h4 className="text-[11px] font-bold text-white">Encrypted SQL Logs</h4>
+                  <h4 className="text-[11px] font-bold text-white">Secure Cloud Vault</h4>
                   <p className="text-[9px] text-slate-400 leading-normal mt-0.5">
-                    Stored in a secure database cluster using strict access control credentials.
+                    Hosted in a high-grade PostgreSQL cluster with end-to-end TLS database validation.
                   </p>
                 </div>
               </div>
             </div>
           </div>
 
-          <div className="bg-[#111827]/40 border border-white/5 p-4 rounded-xl text-[9px] text-slate-500 text-center leading-relaxed">
-            ⚖️ <strong>Disclaimer:</strong> Filing a false report is a criminal offense. Please submit incident details responsibly.
-          </div>
-
         </div>
 
-        {/* Right Columns: Main content & forms */}
+        {/* Right Columns: Main content, forms & public registry */}
         <div className="lg:col-span-3 space-y-6">
           
-          {/* Inner Citizen Tabs switcher */}
-          <div className="flex bg-[#0d1527] p-1 rounded-xl border border-white/5 shadow-inner">
+          {/* Inner Citizen Tabs switcher - Responsive Grid */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-1 bg-[#0d1527] p-1 rounded-xl border border-white/5 shadow-inner">
             <button
               onClick={() => setActiveTab('report')}
-              className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg text-xs font-bold transition-all duration-300 ${
+              className={`flex items-center justify-center gap-1.5 py-2.5 rounded-lg text-[10px] sm:text-xs font-bold transition-all duration-300 ${
                 activeTab === 'report'
                   ? 'bg-[#1b365d]/85 text-emerald-400 border border-emerald-500/20 shadow-md'
                   : 'text-slate-400 hover:text-white'
               }`}
             >
-              <ShieldAlert className="w-4 h-4" />
-              File Secure Report
+              <ShieldAlert className="w-3.5 h-3.5" />
+              Anonymous
+            </button>
+            <button
+              onClick={() => setActiveTab('fir')}
+              className={`flex items-center justify-center gap-1.5 py-2.5 rounded-lg text-[10px] sm:text-xs font-bold transition-all duration-300 ${
+                activeTab === 'fir'
+                  ? 'bg-[#1b365d]/85 text-amber-500 border border-amber-500/20 shadow-md'
+                  : 'text-slate-400 hover:text-white'
+              }`}
+            >
+              <FileText className="w-3.5 h-3.5" />
+              File e-FIR
             </button>
             <button
               onClick={() => setActiveTab('track')}
-              className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg text-xs font-bold transition-all duration-300 ${
+              className={`flex items-center justify-center gap-1.5 py-2.5 rounded-lg text-[10px] sm:text-xs font-bold transition-all duration-300 ${
                 activeTab === 'track'
                   ? 'bg-[#1b365d]/85 text-[#ff9933] border border-[#ff9933]/25 shadow-md'
                   : 'text-slate-400 hover:text-white'
               }`}
             >
-              <Search className="w-4 h-4" />
-              Track Incident Status
+              <Search className="w-3.5 h-3.5" />
+              Track Case
+            </button>
+            <button
+              onClick={() => setActiveTab('registry')}
+              className={`flex items-center justify-center gap-1.5 py-2.5 rounded-lg text-[10px] sm:text-xs font-bold transition-all duration-300 ${
+                activeTab === 'registry'
+                  ? 'bg-[#1b365d]/85 text-blue-450 border border-blue-500/20 shadow-md'
+                  : 'text-slate-400 hover:text-white'
+              }`}
+            >
+              <Globe className="w-3.5 h-3.5" />
+              Public Cases
             </button>
           </div>
 
           <AnimatePresence mode="wait">
-            {activeTab === 'report' ? (
+            {/* 1. Submitting Anonymous Reports */}
+            {activeTab === 'report' && (
               <motion.div
                 key="report-tab"
                 initial={{ opacity: 0, y: 10 }}
@@ -439,53 +550,39 @@ export default function App() {
                 exit={{ opacity: 0 }}
               >
                 {reportSuccess ? (
-                  <motion.div 
-                    className="bg-[#111827] border border-emerald-500/20 p-8 rounded-3xl text-center space-y-6 shadow-2xl"
-                    initial={{ opacity: 0, scale: 0.95 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    exit={{ opacity: 0 }}
-                  >
-                    <div className="w-16 h-16 bg-emerald-500/10 rounded-full border border-emerald-500/30 flex items-center justify-center mx-auto shadow-[0_0_20px_rgba(16,185,129,0.15)] animate-bounce">
+                  <div className="bg-[#111827] border border-emerald-500/20 p-8 rounded-3xl text-center space-y-6 shadow-2xl">
+                    <div className="w-16 h-16 bg-emerald-500/10 rounded-full border border-emerald-500/30 flex items-center justify-center mx-auto animate-bounce">
                       <CheckCircle className="w-10 h-10 text-emerald-500" />
                     </div>
                     <div className="space-y-2">
-                      <h2 className="text-xl font-bold text-white">Report Registered Safely</h2>
-                      <p className="text-xs text-slate-400 max-w-md mx-auto leading-relaxed">
-                        Your report has been securely encrypted and added to the queue. An investigative officer will review the case file shortly.
+                      <h2 className="text-xl font-bold text-white">Anonymous Report Registered</h2>
+                      <p className="text-xs text-slate-400 max-w-md mx-auto">
+                        Your incident has been securely logged without identifying information.
+                      </p>
+                    </div>
+                    <div className="bg-slate-900 border border-white/5 p-4 rounded-xl max-w-sm mx-auto">
+                      <div className="text-[10px] uppercase font-bold text-slate-500">Secure Case File Key</div>
+                      <div className="text-xl font-mono text-[#ff9933] font-bold mt-1">#SPK-{reportSuccess.id}</div>
+                    </div>
+                    <button
+                      onClick={() => setReportSuccess(null)}
+                      className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs px-5 py-2.5 rounded-xl transition"
+                    >
+                      File Another Incident
+                    </button>
+                  </div>
+                ) : (
+                  <form onSubmit={handleFormSubmit} className="bg-[#111827] border border-white/5 p-6 md:p-8 rounded-3xl space-y-6 shadow-2xl">
+                    <div className="space-y-1">
+                      <h3 className="text-sm font-extrabold text-white uppercase flex items-center gap-1.5">
+                        <ShieldAlert className="w-4 h-4 text-emerald-400" />
+                        Anonymous Incident Intelligence Triage
+                      </h3>
+                      <p className="text-[11px] text-slate-400">
+                        This route scrubs your personal name, contact details, and location maps. Strictly for general public safety feeds.
                       </p>
                     </div>
 
-                    <div className="bg-slate-900 border border-white/5 p-4 rounded-xl max-w-sm mx-auto">
-                      <div className="text-[10px] uppercase font-bold text-slate-500">Secure Case File Key</div>
-                      <div className="text-xl font-mono text-[#ff9933] font-bold mt-1">#SPK-{reportSuccess.id || 'N/A'}</div>
-                      <p className="text-[9px] text-slate-500 mt-1">Write this key down to check investigation progress below.</p>
-                    </div>
-
-                    <div className="flex justify-center gap-3">
-                      <button
-                        onClick={() => {
-                          setSearchId(`#SPK-${reportSuccess.id}`);
-                          setActiveTab('track');
-                          setTimeout(() => handleSearchReport(), 100);
-                          setReportSuccess(null);
-                        }}
-                        className="bg-[#1b365d] hover:bg-[#254b80] text-white border border-blue-500/25 font-bold text-xs px-5 py-2.5 rounded-xl transition duration-200"
-                      >
-                        Track Progress Now
-                      </button>
-                      <button
-                        onClick={() => setReportSuccess(null)}
-                        className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs px-5 py-2.5 rounded-xl transition duration-200"
-                      >
-                        Submit Another Incident
-                      </button>
-                    </div>
-                  </motion.div>
-                ) : (
-                  <form 
-                    onSubmit={handleFormSubmit}
-                    className="bg-[#111827] border border-white/5 p-6 md:p-8 rounded-3xl space-y-6 shadow-2xl"
-                  >
                     {/* Step 1: Category */}
                     <div className="space-y-3">
                       <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400">1. Incident Category</h3>
@@ -498,7 +595,7 @@ export default function App() {
                               key={cat.id}
                               type="button"
                               onClick={() => setSelectedCategory(cat.id)}
-                              className={`flex flex-col items-start p-3.5 rounded-xl border text-left transition duration-200 group relative ${
+                              className={`flex flex-col items-start p-3.5 rounded-xl border text-left transition duration-205 group relative ${
                                 isSelected 
                                   ? 'bg-[#1e1e2d] border-red-500/50 shadow-lg shadow-red-500/5' 
                                   : 'bg-slate-900/60 border-white/5 hover:bg-[#151d30]'
@@ -509,7 +606,7 @@ export default function App() {
                               </div>
                               <div className="text-xs font-bold text-white mb-0.5">{cat.label}</div>
                               <div className="text-[10px] text-slate-400 line-clamp-1">{cat.desc}</div>
-                              {isSelected && <span className="absolute top-3 right-3 w-1.5 h-1.5 rounded-full bg-red-500"></span>}
+                              {isSelected && <span className="absolute top-3 right-3 w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse"></span>}
                             </button>
                           );
                         })}
@@ -519,7 +616,6 @@ export default function App() {
                     {/* Step 2: Title & Description */}
                     <div className="space-y-4">
                       <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400">2. Incident Details</h3>
-                      
                       <div className="space-y-1.5">
                         <label className="text-[11px] text-slate-400 font-semibold">Incident Title</label>
                         <input
@@ -548,7 +644,6 @@ export default function App() {
                             {isRecording ? 'Listening...' : 'Dictate Speech'}
                           </button>
                         </div>
-                        
                         <textarea
                           rows={4}
                           className="w-full bg-slate-900 border border-white/5 focus:border-red-500/50 rounded-xl px-4 py-3 text-xs text-white placeholder-slate-500 outline-none transition resize-none"
@@ -563,7 +658,6 @@ export default function App() {
                     {/* Step 3: Evidence Upload */}
                     <div className="space-y-3">
                       <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400">3. Upload Evidence (Optional)</h3>
-                      
                       <input
                         type="file"
                         ref={fileInputRef}
@@ -571,7 +665,6 @@ export default function App() {
                         onChange={handleFileUpload}
                         accept="image/*,video/*,application/pdf"
                       />
-
                       <div 
                         onClick={() => fileInputRef.current?.click()}
                         className={`border-2 border-dashed rounded-2xl p-5 flex flex-col items-center justify-center gap-2 cursor-pointer transition ${
@@ -591,7 +684,6 @@ export default function App() {
                               <Check className="w-4 h-4" />
                             </div>
                             <span className="text-[11px] font-bold text-emerald-400">Evidence Uploaded Successfully</span>
-                            <span className="text-[9px] text-slate-500 max-w-xs truncate">{evidenceUrl}</span>
                           </div>
                         ) : (
                           <>
@@ -620,13 +712,9 @@ export default function App() {
                           {includeLocation ? 'Location Coordinates Captured' : 'Attach Coordinates'}
                         </button>
                       </div>
-
                       {includeLocation && (
                         <div className="space-y-2">
-                          <p className="text-[10px] text-slate-400">
-                            📍 Lat: <span className="font-semibold text-white">{coordinates[0].toFixed(5)}</span>, Lng: <span className="font-semibold text-white">{coordinates[1].toFixed(5)}</span>. Adjust tag location below:
-                          </p>
-                          <div className="h-[200px] rounded-xl overflow-hidden border border-white/5 shadow-inner">
+                          <div className="h-[200px] rounded-xl overflow-hidden border border-white/5">
                             <MapContainer center={mapCenter} zoom={13} style={{ height: '100%', width: '100%' }}>
                               <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
                               <Marker position={coordinates} />
@@ -645,27 +733,26 @@ export default function App() {
                         </div>
                         <div>
                           <div className="text-xs font-bold text-white">Enable AI Privacy Redaction</div>
-                          <div className="text-[9px] text-slate-400 mt-0.5">Scrub personal names, phone numbers, and addresses automatically.</div>
+                          <div className="text-[9px] text-slate-400 mt-0.5">Scrub names, phone numbers, and addresses dynamically.</div>
                         </div>
                       </div>
                       <input
                         type="checkbox"
-                        className="w-4 h-4 text-red-600 border-slate-700 bg-slate-900 rounded focus:ring-red-500 focus:ring-offset-slate-900 focus:ring-2"
+                        className="w-4 h-4 text-red-600 border-slate-700 bg-slate-900 rounded focus:ring-red-500"
                         checked={enableRedact}
                         onChange={() => setEnableRedact(!enableRedact)}
                       />
                     </div>
 
-                    {/* Submit Button */}
                     <button
                       type="submit"
                       disabled={submitting}
-                      className="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-3 rounded-xl shadow-lg shadow-red-600/10 hover:shadow-red-600/20 active:scale-[0.99] transition duration-200 flex items-center justify-center gap-2 text-xs uppercase tracking-wider"
+                      className="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-3 rounded-xl transition duration-200 flex items-center justify-center gap-2 text-xs uppercase tracking-wider shadow-lg shadow-red-650/15"
                     >
                       {submitting ? (
                         <>
                           <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-                          Encrypting & Logging incident...
+                          Scrubbing PII & Registering...
                         </>
                       ) : (
                         <>
@@ -677,7 +764,257 @@ export default function App() {
                   </form>
                 )}
               </motion.div>
-            ) : (
+            )}
+
+            {/* 2. Submitting e-FIR Files (Complainant verified) */}
+            {activeTab === 'fir' && (
+              <motion.div
+                key="fir-tab"
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0 }}
+              >
+                {reportSuccess ? (
+                  <div className="bg-[#111827] border border-emerald-500/20 p-8 rounded-3xl text-center space-y-6 shadow-2xl">
+                    <div className="w-16 h-16 bg-emerald-500/10 rounded-full border border-emerald-500/30 flex items-center justify-center mx-auto">
+                      <FileCheck className="w-10 h-10 text-emerald-500" />
+                    </div>
+                    <div className="space-y-2">
+                      <h2 className="text-xl font-bold text-white">Official e-FIR Filed Successfully</h2>
+                      <p className="text-xs text-slate-400 max-w-md mx-auto">
+                        Your legal complainant verification has been securely registered in the Home Ministry data vault.
+                      </p>
+                    </div>
+                    <div className="bg-slate-900 border border-white/5 p-4 rounded-xl max-w-sm mx-auto">
+                      <div className="text-[10px] uppercase font-bold text-slate-500">Official e-FIR ID</div>
+                      <div className="text-xl font-mono text-amber-500 font-bold mt-1">#FIR-{reportSuccess.id}</div>
+                    </div>
+                    <button
+                      onClick={() => setReportSuccess(null)}
+                      className="bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs px-5 py-2.5 rounded-xl transition"
+                    >
+                      File Another e-FIR
+                    </button>
+                  </div>
+                ) : (
+                  <form onSubmit={handleFormSubmit} className="bg-[#111827] border border-white/5 p-6 md:p-8 rounded-3xl space-y-6 shadow-2xl">
+                    <div className="space-y-1">
+                      <h3 className="text-sm font-extrabold text-white uppercase flex items-center gap-1.5">
+                        <FileText className="w-4 h-4 text-amber-500" />
+                        Official Complainant Verified e-FIR Filing
+                      </h3>
+                      <p className="text-[11px] text-slate-400">
+                        File an official First Information Report. Requires Government ID verification. Complainant details are held under strict security.
+                      </p>
+                    </div>
+
+                    {/* Complainant Identity Verification */}
+                    <div className="bg-slate-950/40 p-5 rounded-2xl border border-white/5 space-y-4">
+                      <h4 className="text-xs font-bold uppercase text-amber-500 tracking-wider flex items-center gap-1">
+                        <User className="w-4 h-4 text-amber-500" />
+                        Complainant Credentials
+                      </h4>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div className="space-y-1.5">
+                          <label className="text-[10px] uppercase font-bold text-slate-400">Full Legal Name</label>
+                          <input
+                            type="text"
+                            required
+                            value={complainantName}
+                            onChange={(e) => setComplainantName(e.target.value)}
+                            placeholder="e.g. Rajesh Kumar"
+                            className="w-full bg-slate-900 border border-white/5 focus:border-amber-500/50 rounded-xl px-4 py-2.5 text-xs text-white placeholder-slate-600 outline-none transition"
+                          />
+                        </div>
+                        <div className="space-y-1.5">
+                          <label className="text-[10px] uppercase font-bold text-slate-400">Contact Number / Email</label>
+                          <input
+                            type="text"
+                            required
+                            value={complainantContact}
+                            onChange={(e) => setComplainantContact(e.target.value)}
+                            placeholder="e.g. +91 98765 43210"
+                            className="w-full bg-slate-900 border border-white/5 focus:border-amber-500/50 rounded-xl px-4 py-2.5 text-xs text-white placeholder-slate-600 outline-none transition"
+                          />
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 items-end">
+                        <div className="sm:col-span-1 space-y-1.5">
+                          <label className="text-[10px] uppercase font-bold text-slate-400">Govt ID Type</label>
+                          <select
+                            value={idType}
+                            onChange={(e) => setIdType(e.target.value)}
+                            className="w-full bg-slate-900 border border-white/5 rounded-xl px-3 py-2.5 text-xs text-slate-200 outline-none focus:border-amber-500/50"
+                          >
+                            <option value="Aadhaar Card">Aadhaar Card</option>
+                            <option value="Passport">Passport</option>
+                            <option value="PAN Card">PAN Card</option>
+                            <option value="Voter ID">Voter ID</option>
+                          </select>
+                        </div>
+                        
+                        <div className="sm:col-span-2 space-y-1.5">
+                          <label className="text-[10px] uppercase font-bold text-slate-400">Upload Govt ID Copy (PDF / Image)</label>
+                          <input
+                            type="file"
+                            ref={idFileInputRef}
+                            className="hidden"
+                            onChange={handleIdUpload}
+                            accept="image/*,application/pdf"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => idFileInputRef.current?.click()}
+                            className={`w-full py-2.5 px-4 rounded-xl border text-xs font-semibold flex items-center justify-center gap-2 transition duration-200 ${
+                              idUploadSuccess 
+                                ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400' 
+                                : 'bg-slate-900 border-white/5 text-slate-300 hover:bg-white/5'
+                            }`}
+                          >
+                            {isUploadingId ? (
+                              <div className="w-3.5 h-3.5 border-2 border-white/30 border-t-amber-500 rounded-full animate-spin"></div>
+                            ) : (
+                              <UploadCloud className="w-4 h-4" />
+                            )}
+                            {isUploadingId ? 'Uploading ID Document...' : idUploadSuccess ? 'Govt ID Document Verified' : 'Browse ID file'}
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Incident specifications */}
+                    <div className="space-y-4 pt-2">
+                      <div className="space-y-3">
+                        <label className="text-xs font-bold uppercase tracking-wider text-slate-400">1. Incident Category</label>
+                        <select
+                          value={selectedCategory}
+                          onChange={(e) => setSelectedCategory(e.target.value)}
+                          className="w-full bg-slate-900 border border-white/5 rounded-xl px-3 py-3 text-xs text-slate-200 outline-none focus:border-amber-500/50"
+                        >
+                          {CATEGORIES.map(cat => (
+                            <option key={cat.id} value={cat.id}>{cat.label}</option>
+                          ))}
+                        </select>
+                      </div>
+
+                      <div className="space-y-1.5">
+                        <label className="text-[11px] text-slate-400 font-semibold">Incident Title</label>
+                        <input
+                          type="text"
+                          required
+                          value={title}
+                          onChange={(e) => setTitle(e.target.value)}
+                          placeholder="Brief legal summary of complaint"
+                          className="w-full bg-slate-900 border border-white/5 focus:border-amber-500/50 rounded-xl px-4 py-3 text-xs text-white placeholder-slate-500 outline-none transition"
+                        />
+                      </div>
+
+                      <div className="space-y-1.5">
+                        <label className="text-[11px] text-slate-400 font-semibold">Legal Incident Statement (Unaltered Description)</label>
+                        <textarea
+                          rows={4}
+                          required
+                          value={description}
+                          onChange={(e) => setDescription(e.target.value)}
+                          placeholder="Please detail the incident precisely. Mention dates, times, names of suspects if known, and specific order of events."
+                          className="w-full bg-slate-900 border border-white/5 focus:border-amber-500/50 rounded-xl px-4 py-3 text-xs text-white placeholder-slate-500 outline-none transition resize-none font-mono"
+                        />
+                      </div>
+                    </div>
+
+                    {/* Step 3: Evidence Upload */}
+                    <div className="space-y-3">
+                      <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400 font-semibold">3. Attach Evidentiary Files</h3>
+                      <input
+                        type="file"
+                        ref={fileInputRef}
+                        className="hidden"
+                        onChange={handleFileUpload}
+                        accept="image/*,video/*,application/pdf"
+                      />
+                      <div 
+                        onClick={() => fileInputRef.current?.click()}
+                        className={`border-2 border-dashed rounded-2xl p-5 flex flex-col items-center justify-center gap-2 cursor-pointer transition ${
+                          uploadSuccess 
+                            ? 'border-emerald-500/30 bg-emerald-500/5' 
+                            : 'border-white/10 bg-slate-900 hover:bg-[#151d30] hover:border-white/20'
+                        }`}
+                      >
+                        {isUploading ? (
+                          <div className="flex flex-col items-center gap-2">
+                            <div className="w-6 h-6 border-2 border-slate-700 border-t-amber-500 rounded-full animate-spin"></div>
+                            <span className="text-[10px] text-slate-400">Uploading secure payload...</span>
+                          </div>
+                        ) : uploadSuccess ? (
+                          <div className="flex flex-col items-center gap-1.5">
+                            <div className="w-8 h-8 bg-emerald-500/10 rounded-full border border-emerald-500/30 flex items-center justify-center text-emerald-400">
+                              <Check className="w-4 h-4" />
+                            </div>
+                            <span className="text-[11px] font-bold text-emerald-400">Evidence Uploaded successfully</span>
+                          </div>
+                        ) : (
+                          <>
+                            <UploadCloud className="w-6 h-6 text-slate-400" />
+                            <span className="text-[11px] font-bold text-white">Drag & drop or browse files</span>
+                            <span className="text-[9px] text-slate-500">Attach photos, videos, or legal PDFs</span>
+                          </>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Step 4: Geotag Location */}
+                    <div className="space-y-3">
+                      <div className="flex justify-between items-center">
+                        <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400">4. Incident Location Tag</h3>
+                        <button
+                          type="button"
+                          onClick={handleGetLocation}
+                          className={`flex items-center gap-1.5 text-[10px] font-bold px-3 py-1 rounded-full border transition duration-200 ${
+                            includeLocation 
+                              ? 'bg-amber-500/15 border-amber-500/30 text-amber-405' 
+                              : 'bg-slate-900 border-white/5 text-slate-300 hover:bg-white/5'
+                          }`}
+                        >
+                          <MapPin className="w-3 h-3" />
+                          {includeLocation ? 'Coordinates Attached' : 'Attach Coordinates'}
+                        </button>
+                      </div>
+                      {includeLocation && (
+                        <div className="h-[200px] rounded-xl overflow-hidden border border-white/5">
+                          <MapContainer center={mapCenter} zoom={13} style={{ height: '100%', width: '100%' }}>
+                            <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+                            <Marker position={coordinates} />
+                            <MapEvents />
+                          </MapContainer>
+                        </div>
+                      )}
+                    </div>
+
+                    <button
+                      type="submit"
+                      disabled={submitting}
+                      className="w-full bg-amber-600 hover:bg-amber-700 text-white font-bold py-3 rounded-xl transition duration-200 flex items-center justify-center gap-2 text-xs uppercase tracking-wider shadow-lg shadow-amber-600/15"
+                    >
+                      {submitting ? (
+                        <>
+                          <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                          Filing official e-FIR...
+                        </>
+                      ) : (
+                        <>
+                          <FileText className="w-4 h-4" />
+                          File Legal e-FIR
+                        </>
+                      )}
+                    </button>
+                  </form>
+                )}
+              </motion.div>
+            )}
+
+            {/* 3. Tracking Case Files */}
+            {activeTab === 'track' && (
               <motion.div
                 key="track-tab"
                 initial={{ opacity: 0, y: 10 }}
@@ -688,10 +1025,10 @@ export default function App() {
                 <div className="space-y-2">
                   <h3 className="text-base font-bold text-white flex items-center gap-2">
                     <Search className="w-4 h-4 text-[#ff9933]" />
-                    Anonymous Incident Status Tracker
+                    Incident Status & e-FIR Tracker
                   </h3>
                   <p className="text-xs text-slate-400">
-                    Input your alphanumeric Case File Key (e.g. #SPK-12 or just 12) below to track real-time processing status.
+                    Input your Case Key (#SPK-xx) or e-FIR Key (#FIR-xx) below to track real-time processing status.
                   </p>
                 </div>
                 
@@ -702,7 +1039,7 @@ export default function App() {
                       type="text"
                       value={searchId}
                       onChange={(e) => setSearchId(e.target.value)}
-                      placeholder="Enter Report ID (e.g., #SPK-12)"
+                      placeholder="e.g. #SPK-12 or #FIR-7"
                       className="w-full bg-slate-900 border border-white/5 focus:border-[#ff9933]/50 rounded-xl pl-10 pr-4 py-3 text-xs text-white placeholder-slate-500 outline-none transition"
                     />
                   </div>
@@ -723,13 +1060,12 @@ export default function App() {
                 </form>
 
                 {trackingError && (
-                  <div className="bg-red-500/10 border border-red-500/20 text-red-400 text-xs px-4 py-3 rounded-xl flex items-center gap-2 animate-pulse">
+                  <div className="bg-red-500/10 border border-red-500/20 text-red-400 text-xs px-4 py-3 rounded-xl flex items-center gap-2">
                     <AlertTriangle className="w-4 h-4 flex-shrink-0" />
                     <span>{trackingError}</span>
                   </div>
                 )}
 
-                {/* Case Status Result details */}
                 <AnimatePresence mode="wait">
                   {trackedReport ? (
                     <motion.div
@@ -742,11 +1078,19 @@ export default function App() {
                       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 bg-slate-900/60 border border-white/5 p-4 rounded-xl text-xs">
                         <div>
                           <div className="text-[9px] uppercase font-bold text-slate-500">Case Key</div>
-                          <div className="text-base font-mono font-bold text-white mt-0.5">#SPK-{trackedReport.id}</div>
+                          <div className="text-base font-mono font-bold text-white mt-0.5">
+                            {trackedReport.report_type === 'fir' ? `#FIR-${trackedReport.id}` : `#SPK-${trackedReport.id}`}
+                          </div>
                         </div>
                         <div>
-                          <div className="text-[9px] uppercase font-bold text-slate-500">Category</div>
-                          <div className="text-xs font-semibold text-slate-300 mt-1">{trackedReport.category}</div>
+                          <div className="text-[9px] uppercase font-bold text-slate-500">Classification</div>
+                          <div className="text-xs font-semibold text-slate-350 mt-1 uppercase flex items-center gap-1">
+                            {trackedReport.report_type === 'fir' ? (
+                              <span className="text-amber-500">Legal e-FIR</span>
+                            ) : (
+                              <span className="text-emerald-400">Anonymous Report</span>
+                            )}
+                          </div>
                         </div>
                         <div>
                           <div className="text-[9px] uppercase font-bold text-slate-500">Registration Date</div>
@@ -813,7 +1157,7 @@ export default function App() {
                           <h4 className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Official Action Logs / remarks</h4>
                         </div>
                         <div className="text-xs text-slate-300 leading-relaxed font-sans border-l border-[#ff9933]/30 pl-3 py-0.5">
-                          {trackedReport.admin_remarks || 'The incident report is registered and awaits dispatch queue triage. No official action log comments have been registered by the investigating officer yet.'}
+                          {trackedReport.admin_remarks || 'The case file is queued for police triage. No official actions logged yet.'}
                         </div>
                       </div>
 
@@ -834,7 +1178,7 @@ export default function App() {
                           </div>
                         </div>
                         <div className="text-xs space-y-1">
-                          <span className="text-slate-500">Sanitized Description:</span>
+                          <span className="text-slate-500">Description:</span>
                           <p className="text-slate-350 leading-relaxed bg-slate-950/40 p-3 rounded-lg border border-white/5 font-mono text-[10px]">
                             {trackedReport.description}
                           </p>
@@ -849,6 +1193,192 @@ export default function App() {
                     </div>
                   )}
                 </AnimatePresence>
+              </motion.div>
+            )}
+
+            {/* 4. Public Cases Registry (Transparency Dashboard) */}
+            {activeTab === 'registry' && (
+              <motion.div
+                key="registry-tab"
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0 }}
+                className="space-y-6"
+              >
+                {/* Intro */}
+                <div className="bg-[#111827] border border-white/5 p-5 rounded-2xl space-y-1.5 shadow-xl">
+                  <h3 className="text-sm font-extrabold text-white uppercase flex items-center gap-1.5">
+                    <Globe className="w-4 h-4 text-blue-400" />
+                    Public Case Registry & Transparency Board
+                  </h3>
+                  <p className="text-[11px] text-slate-400 leading-normal">
+                    This registry allows citizens to monitor active and pending incident statistics and official action logs. To protect witness safety and complainant privacy, confidential descriptions, coordinates, and upload documents are masked.
+                  </p>
+                </div>
+
+                {/* Main registry panel with list & masked inspector */}
+                <div className="grid grid-cols-1 md:grid-cols-5 gap-6">
+                  
+                  {/* Left Column: Filter and Tally list (2/5 size) */}
+                  <div className="md:col-span-2 bg-[#111827] border border-white/5 p-4 rounded-2xl space-y-3 shadow-xl">
+                    
+                    {/* Tiny Category/Status Filters */}
+                    <div className="grid grid-cols-2 gap-2 pb-2.5 border-b border-white/5">
+                      <div>
+                        <label className="text-[8px] text-slate-500 font-bold uppercase tracking-wider">Category</label>
+                        <select
+                          value={filterRegCategory}
+                          onChange={(e) => setFilterRegCategory(e.target.value)}
+                          className="w-full bg-slate-900 border border-white/5 rounded-lg p-1.5 text-[10px] text-slate-300 outline-none"
+                        >
+                          <option value="All">All Categories</option>
+                          <option value="Crime & Violence">Crime & Violence</option>
+                          <option value="Corruption">Corruption</option>
+                          <option value="Cyber Crime">Cyber Crime</option>
+                          <option value="Public Safety">Public Safety</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label className="text-[8px] text-slate-500 font-bold uppercase tracking-wider">Status</label>
+                        <select
+                          value={filterRegStatus}
+                          onChange={(e) => setFilterRegStatus(e.target.value)}
+                          className="w-full bg-slate-900 border border-white/5 rounded-lg p-1.5 text-[10px] text-slate-300 outline-none"
+                        >
+                          <option value="All">All Status</option>
+                          <option value="Submitted">Submitted</option>
+                          <option value="Under Investigation">Under Investigation</option>
+                          <option value="Action Taken">Action Taken</option>
+                          <option value="Resolved">Resolved</option>
+                        </select>
+                      </div>
+                    </div>
+
+                    {/* Scrollable list */}
+                    <div className="space-y-2 max-h-[360px] overflow-y-auto pr-1">
+                      {registryLoading ? (
+                        <div className="space-y-2 animate-pulse">
+                          {[1, 2].map(i => (
+                            <div key={i} className="h-16 bg-slate-900 rounded-xl"></div>
+                          ))}
+                        </div>
+                      ) : filteredRegReports.length === 0 ? (
+                        <div className="text-center py-10 text-slate-600 text-[10px]">
+                          No public records matching filters.
+                        </div>
+                      ) : (
+                        filteredRegReports.map((rep) => {
+                          const isSelected = selectedRegistryReport?.id === rep.id;
+                          return (
+                            <button
+                              key={rep.id}
+                              type="button"
+                              onClick={() => setSelectedRegistryReport(rep)}
+                              className={`w-full text-left p-2.5 rounded-xl border text-[11px] transition duration-200 flex flex-col gap-1 ${
+                                isSelected 
+                                  ? 'bg-[#1e1e2d] border-blue-500/30' 
+                                  : 'bg-slate-900/40 border-white/5 hover:bg-slate-900/60'
+                              }`}
+                            >
+                              <div className="w-full flex justify-between items-center text-[9px] font-mono text-slate-500">
+                                <span>{rep.report_type === 'fir' ? `#FIR-${rep.id}` : `#SPK-${rep.id}`}</span>
+                                <span className={rep.report_type === 'fir' ? 'text-amber-500' : 'text-emerald-400'}>
+                                  {rep.report_type === 'fir' ? 'e-FIR' : 'Anonymous'}
+                                </span>
+                              </div>
+                              <div className="font-bold text-white line-clamp-1">{rep.title}</div>
+                              
+                              <div className="flex justify-between items-center text-[9px] text-slate-400 mt-1">
+                                <span>{rep.category}</span>
+                                <span className={`px-1.5 py-0.5 rounded border text-[8px] ${STATUS_STYLING[rep.status] || 'bg-slate-800'}`}>
+                                  {rep.status}
+                                </span>
+                              </div>
+                            </button>
+                          );
+                        })
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Right Column: Masked Inspector details (3/5 size) */}
+                  <div className="md:col-span-3 bg-[#111827] border border-white/5 p-5 rounded-2xl space-y-4 shadow-xl">
+                    {selectedRegistryReport ? (
+                      <div className="space-y-4">
+                        <div className="flex justify-between items-start pb-3 border-b border-white/5">
+                          <div>
+                            <span className="text-[9px] text-slate-500 font-mono">
+                              Public Registry ID: {selectedRegistryReport.report_type === 'fir' ? `#FIR-${selectedRegistryReport.id}` : `#SPK-${selectedRegistryReport.id}`}
+                            </span>
+                            <h3 className="text-xs font-bold text-white mt-0.5">{selectedRegistryReport.title}</h3>
+                          </div>
+                          <span className={`text-[10px] px-2 py-0.5 rounded font-bold border ${STATUS_STYLING[selectedRegistryReport.status]}`}>
+                            {selectedRegistryReport.status}
+                          </span>
+                        </div>
+
+                        {/* Masked details message */}
+                        <div className="bg-red-500/5 border border-red-500/10 p-3.5 rounded-xl space-y-2">
+                          <div className="flex items-center gap-1.5 text-xs font-bold text-red-400">
+                            <ShieldX className="w-4 h-4 text-red-500" />
+                            Security Protection Active
+                          </div>
+                          <p className="text-[10px] text-slate-400 leading-relaxed">
+                            Due to witness confidentiality protocols, investigation case files are encrypted. Public access is restricted to official action logs.
+                          </p>
+                        </div>
+
+                        {/* Case specifics */}
+                        <div className="grid grid-cols-2 gap-3 text-[10px]">
+                          <div className="bg-slate-900/50 p-2.5 rounded-xl border border-white/5">
+                            <span className="text-slate-500 font-medium block">Report Category</span>
+                            <span className="text-slate-300 font-bold mt-0.5 block">{selectedRegistryReport.category}</span>
+                          </div>
+                          <div className="bg-slate-900/50 p-2.5 rounded-xl border border-white/5">
+                            <span className="text-slate-500 font-medium block">Urgency Classification</span>
+                            <span className={`font-bold mt-0.5 block ${
+                              selectedRegistryReport.severity === 'High' ? 'text-red-400' : 'text-emerald-400'
+                            }`}>{selectedRegistryReport.severity}</span>
+                          </div>
+                        </div>
+
+                        {/* Masked Narrative */}
+                        <div className="space-y-1">
+                          <label className="text-[10px] uppercase font-bold text-slate-500">Incident Narrative</label>
+                          <div className="bg-slate-950/40 p-3 rounded-lg border border-white/5 text-[10px] text-slate-500 flex items-center gap-2">
+                            <Lock className="w-3.5 h-3.5 flex-shrink-0" />
+                            <span>🔒 Description details masked for public safety.</span>
+                          </div>
+                        </div>
+
+                        {/* Masked Evidence */}
+                        <div className="space-y-1">
+                          <label className="text-[10px] uppercase font-bold text-slate-500">Evidentiary Attachments</label>
+                          <div className="bg-slate-950/40 p-3 rounded-lg border border-white/5 text-[10px] text-slate-500 flex items-center gap-2">
+                            <Lock className="w-3.5 h-3.5 flex-shrink-0" />
+                            <span>🔒 Evidence file encrypted in cloud storage.</span>
+                          </div>
+                        </div>
+
+                        {/* Transparent Action log */}
+                        <div className="bg-slate-900/60 p-4 rounded-xl border border-white/5 space-y-2">
+                          <div className="flex items-center gap-1.5">
+                            <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+                            <h4 className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Official Action remarks</h4>
+                          </div>
+                          <p className="text-[10px] text-slate-300 leading-relaxed font-sans border-l border-emerald-500/30 pl-3">
+                            {selectedRegistryReport.admin_remarks || 'Incident is registered. Awaiting initial officer dispatch details.'}
+                          </p>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="text-center py-20 text-slate-600 text-xs">
+                        Select a report from the list to review action progress.
+                      </div>
+                    )}
+                  </div>
+
+                </div>
               </motion.div>
             )}
           </AnimatePresence>
@@ -899,3 +1429,10 @@ export default function App() {
     </div>
   );
 }
+
+const STATUS_STYLING = {
+  Submitted: 'bg-indigo-500/10 border-indigo-500/20 text-indigo-400',
+  'Under Investigation': 'bg-amber-500/10 border-amber-500/20 text-amber-400',
+  'Action Taken': 'bg-blue-500/10 border-blue-500/20 text-blue-400',
+  Resolved: 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400'
+};

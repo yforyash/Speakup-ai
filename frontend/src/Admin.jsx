@@ -17,7 +17,9 @@ import {
   UserCheck,
   LogOut,
   AlertTriangle,
-  FileCheck
+  FileCheck,
+  User,
+  Globe
 } from 'lucide-react';
 import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
@@ -61,6 +63,7 @@ export default function Admin() {
   const [filterCategory, setFilterCategory] = useState('All');
   const [filterSeverity, setFilterSeverity] = useState('All');
   const [filterStatus, setFilterStatus] = useState('All');
+  const [filterReportType, setFilterReportType] = useState('All'); // 'All' | 'anonymous' | 'fir'
 
   // Action Form States
   const [actionStatus, setActionStatus] = useState('');
@@ -160,7 +163,10 @@ export default function Admin() {
     const matchCat = filterCategory === 'All' || rep.category === filterCategory;
     const matchSev = filterSeverity === 'All' || rep.severity === filterSeverity;
     const matchStat = filterStatus === 'All' || rep.status === filterStatus;
-    return matchCat && matchSev && matchStat;
+    const matchType = filterReportType === 'All' ||
+                      (filterReportType === 'anonymous' && (rep.report_type === 'report' || rep.report_type === 'anonymous' || !rep.report_type)) ||
+                      (filterReportType === 'fir' && rep.report_type === 'fir');
+    return matchCat && matchSev && matchStat && matchType;
   });
 
   // Calculate Metrics
@@ -241,8 +247,8 @@ export default function Admin() {
                 required
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                placeholder="Password"
-                className="w-full bg-slate-900 border border-white/5 focus:border-[#ff9933]/50 rounded-xl px-4 py-3 text-xs text-white placeholder-slate-650 outline-none transition"
+                placeholder="Password (Secure@HomeMHA256)"
+                className="w-full bg-slate-900 border border-white/5 focus:border-[#ff9933]/50 rounded-xl px-4 py-3 text-xs text-white placeholder-slate-655 outline-none transition"
               />
             </div>
 
@@ -491,6 +497,19 @@ export default function Admin() {
               </select>
             </div>
 
+            <div>
+              <label className="text-[9px] text-slate-500 font-bold uppercase tracking-wider">Classification Type</label>
+              <select
+                className="w-full mt-1 bg-slate-900 border border-white/5 rounded-lg px-3 py-2 text-xs text-slate-350 outline-none"
+                value={filterReportType}
+                onChange={(e) => setFilterReportType(e.target.value)}
+              >
+                <option value="All">All Classifications</option>
+                <option value="anonymous">Anonymous Reports Only</option>
+                <option value="fir">Verified e-FIR Files Only</option>
+              </select>
+            </div>
+
             <div className="grid grid-cols-2 gap-2">
               <div>
                 <label className="text-[9px] text-slate-500 font-bold uppercase tracking-wider">Severity</label>
@@ -549,12 +568,14 @@ export default function Admin() {
                   >
                     <div className="w-full flex justify-between items-start gap-2">
                       <span className="text-xs font-bold text-white line-clamp-1 flex-1">{rep.title}</span>
-                      <span className="text-[9px] font-mono font-bold text-slate-500">#SPK-{rep.id}</span>
+                      <span className="text-[9px] font-mono font-bold text-slate-505">
+                        {rep.report_type === 'fir' ? `#FIR-${rep.id}` : `#SPK-${rep.id}`}
+                      </span>
                     </div>
 
                     <div className="flex flex-wrap items-center gap-1.5 mt-0.5">
-                      <span className="text-[9px] px-2 py-0.5 rounded-full font-bold bg-slate-800 text-slate-300">
-                        {rep.category}
+                      <span className="text-[9px] px-2 py-0.5 rounded-full font-bold bg-slate-800 text-slate-350">
+                        {rep.report_type === 'fir' ? 'e-FIR' : 'Anonymous'}
                       </span>
                       <span 
                         className="text-[9px] px-2 py-0.5 rounded-full font-bold"
@@ -593,11 +614,19 @@ export default function Admin() {
                 <div className="flex flex-col md:flex-row md:justify-between md:items-start gap-4 pb-5 border-b border-white/5">
                   <div className="space-y-1">
                     <div className="flex items-center gap-2">
-                      <span className="text-xs text-slate-500 font-mono">Case File ID: #SPK-{selectedReport.id}</span>
+                      <span className="text-xs text-slate-500 font-mono">
+                        Case File: {selectedReport.report_type === 'fir' ? `#FIR-${selectedReport.id}` : `#SPK-${selectedReport.id}`}
+                      </span>
                       {selectedReport.redacted && (
                         <span className="flex items-center gap-1 text-[10px] bg-blue-500/10 text-blue-400 border border-blue-500/20 px-2 py-0.5 rounded animate-pulse">
                           <Sparkles className="w-3 h-3 text-blue-400" />
                           AI Redacted
+                        </span>
+                      )}
+                      {selectedReport.report_type === 'fir' && (
+                        <span className="flex items-center gap-1 text-[10px] bg-amber-500/10 text-amber-500 border border-amber-500/20 px-2 py-0.5 rounded">
+                          <FileCheck className="w-3 h-3 text-amber-500" />
+                          Legal e-FIR
                         </span>
                       )}
                     </div>
@@ -623,9 +652,42 @@ export default function Admin() {
                   </div>
                 </div>
 
+                {/* Complainant Legal Details if e-FIR */}
+                {selectedReport.report_type === 'fir' && (
+                  <div className="bg-amber-500/5 border border-amber-500/15 p-4 rounded-xl space-y-3">
+                    <h4 className="text-xs font-bold uppercase text-amber-500 tracking-wider flex items-center gap-1.5">
+                      <User className="w-4 h-4 text-amber-500" />
+                      Verified e-FIR Complainant Profile
+                    </h4>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+                      <div>
+                        <span className="text-slate-500 font-medium">Complainant Full Name:</span>
+                        <span className="text-slate-200 ml-1.5 font-bold">{selectedReport.complainant_name || 'N/A'}</span>
+                      </div>
+                      <div>
+                        <span className="text-slate-500 font-medium">Contact Coordinates:</span>
+                        <span className="text-slate-200 ml-1.5 font-bold font-mono">{selectedReport.complainant_contact || 'N/A'}</span>
+                      </div>
+                    </div>
+                    {selectedReport.identity_document_url && (
+                      <div className="text-xs pt-2.5 border-t border-white/5 flex items-center justify-between">
+                        <span className="text-slate-500 font-medium">Verified Identity Document:</span>
+                        <a 
+                          href={selectedReport.identity_document_url} 
+                          target="_blank" 
+                          rel="noopener noreferrer"
+                          className="text-blue-450 hover:text-blue-350 font-bold underline flex items-center gap-1"
+                        >
+                          <FileText className="w-3.5 h-3.5" /> View Uploaded Credentials <ExternalLink className="w-3 h-3" />
+                        </a>
+                      </div>
+                    )}
+                  </div>
+                )}
+
                 {/* Description */}
                 <div className="space-y-2">
-                  <h4 className="text-xs font-bold uppercase tracking-wider text-slate-400">Incident Narrative</h4>
+                  <h4 className="text-xs font-bold uppercase tracking-wider text-slate-400">Incident Narrative Statement</h4>
                   <div className="bg-slate-950/40 border border-white/5 rounded-2xl p-4 text-xs text-slate-200 leading-relaxed max-h-[160px] overflow-y-auto whitespace-pre-line font-mono">
                     {selectedReport.description}
                   </div>
