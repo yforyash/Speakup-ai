@@ -12,23 +12,16 @@ import {
   MessageSquare,
   Sparkles,
   Info,
-  ExternalLink
+  ExternalLink,
+  Lock,
+  UserCheck,
+  LogOut,
+  AlertTriangle,
+  FileCheck
 } from 'lucide-react';
 import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
-import {
-  ResponsiveContainer,
-  PieChart,
-  Pie,
-  Cell,
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  Tooltip,
-  Legend
-} from 'recharts';
 
 // Fix Leaflet marker icon asset mapping issue
 delete L.Icon.Default.prototype._getIconUrl;
@@ -54,6 +47,12 @@ const STATUS_STYLING = {
 };
 
 export default function Admin() {
+  const [isAuthenticated, setIsAuthenticated] = useState(!!sessionStorage.getItem('mha_admin_token'));
+  const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
+  const [loginError, setLoginError] = useState('');
+  const [loggingIn, setLoggingIn] = useState(false);
+
   const [reports, setReports] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedReport, setSelectedReport] = useState(null);
@@ -85,14 +84,41 @@ export default function Admin() {
   };
 
   useEffect(() => {
-    fetchReports();
-  }, []);
+    if (isAuthenticated) {
+      fetchReports();
+    }
+  }, [isAuthenticated]);
 
   // Update report selected values on active report toggle
   const handleSelectReport = (report) => {
     setSelectedReport(report);
     setActionStatus(report.status);
     setActionRemarks(report.admin_remarks || '');
+  };
+
+  // Submit login credentials
+  const handleLogin = async (e) => {
+    e.preventDefault();
+    setLoginError('');
+    setLoggingIn(true);
+
+    try {
+      const res = await axios.post(`${API_URL}/api/auth/login`, { username, password });
+      sessionStorage.setItem('mha_admin_token', res.data.token);
+      setIsAuthenticated(true);
+    } catch (err) {
+      setLoginError(err.response?.data?.error || 'Authentication credentials rejected.');
+    } finally {
+      setLoggingIn(false);
+    }
+  };
+
+  // Logout admin
+  const handleLogout = () => {
+    sessionStorage.removeItem('mha_admin_token');
+    setIsAuthenticated(false);
+    setSelectedReport(null);
+    setReports([]);
   };
 
   // Submit report status update
@@ -149,33 +175,142 @@ export default function Admin() {
     return acc;
   }, { Low: 0, Medium: 0, High: 0 });
 
-  const pieData = Object.keys(severityCounts).map(key => ({
-    name: key,
-    value: severityCounts[key]
-  })).filter(item => item.value > 0);
-
   // Chart Data: Category Distribution
   const categoryCounts = reports.reduce((acc, rep) => {
     acc[rep.category] = (acc[rep.category] || 0) + 1;
     return acc;
   }, {});
 
-  const barData = Object.keys(categoryCounts).map(key => ({
-    name: key,
-    count: categoryCounts[key]
-  }));
-
   // Geotagged reports for maps
   const geotaggedReports = reports.filter(rep => rep.latitude && rep.longitude);
 
+  // Render Login Page if not authenticated
+  if (!isAuthenticated) {
+    return (
+      <div className="w-full max-w-md mx-auto my-12">
+        <motion.div 
+          className="bg-[#0d1527] border border-white/5 p-8 rounded-3xl shadow-2xl relative overflow-hidden"
+          initial={{ opacity: 0, y: 15 }}
+          animate={{ opacity: 1, y: 0 }}
+        >
+          {/* Emblem & Top Bar */}
+          <div className="flex flex-col items-center gap-3 text-center mb-6">
+            <img
+              src="https://upload.wikimedia.org/wikipedia/commons/5/59/Emblem_of_India.svg"
+              alt="National Emblem of India"
+              className="w-16 h-16 brightness-110 filter drop-shadow-[0_0_8px_rgba(255,255,255,0.15)]"
+            />
+            <div>
+              <div className="text-[10px] text-[#ff9933] font-bold tracking-widest uppercase">
+                गृह मंत्रालय | Ministry of Home Affairs
+              </div>
+              <h2 className="text-sm font-extrabold text-white mt-1 uppercase tracking-wide">
+                Intelligence Control Center Login
+              </h2>
+              <div className="text-[9px] text-emerald-400 font-bold mt-0.5 tracking-wider flex items-center justify-center gap-1">
+                <span className="w-1 h-1 bg-emerald-400 rounded-full animate-ping"></span>
+                Secure Government Node (256-Bit SSL)
+              </div>
+            </div>
+          </div>
+
+          {loginError && (
+            <div className="bg-red-500/10 border border-red-500/25 text-red-400 text-[11px] p-3 rounded-xl flex items-center gap-2 mb-4">
+              <AlertTriangle className="w-4 h-4 flex-shrink-0" />
+              <span>{loginError}</span>
+            </div>
+          )}
+
+          <form onSubmit={handleLogin} className="space-y-4">
+            <div className="space-y-1">
+              <label className="text-[10px] uppercase font-bold text-slate-400">Officer Username / ID</label>
+              <input
+                type="text"
+                required
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+                placeholder="e.g. admin"
+                className="w-full bg-slate-900 border border-white/5 focus:border-[#ff9933]/50 rounded-xl px-4 py-3 text-xs text-white placeholder-slate-650 outline-none transition"
+              />
+            </div>
+
+            <div className="space-y-1">
+              <label className="text-[10px] uppercase font-bold text-slate-400">Passcode coordinates</label>
+              <input
+                type="password"
+                required
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="Password"
+                className="w-full bg-slate-900 border border-white/5 focus:border-[#ff9933]/50 rounded-xl px-4 py-3 text-xs text-white placeholder-slate-650 outline-none transition"
+              />
+            </div>
+
+            <button
+              type="submit"
+              disabled={loggingIn}
+              className="w-full mt-2 bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-xl transition duration-200 flex items-center justify-center gap-2 text-xs uppercase tracking-wider shadow-lg shadow-blue-600/15"
+            >
+              {loggingIn ? (
+                <>
+                  <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                  Verifying Credentials...
+                </>
+              ) : (
+                <>
+                  <Lock className="w-3.5 h-3.5" />
+                  Request Access Terminal
+                </>
+              )}
+            </button>
+          </form>
+
+          {/* Secure Restricted Notice */}
+          <div className="mt-6 border-t border-white/5 pt-4 text-[9px] text-slate-500 leading-normal text-center space-y-2">
+            <p className="font-semibold text-slate-450 uppercase flex items-center justify-center gap-1">
+              <ShieldAlert className="w-3.5 h-3.5 text-red-500" />
+              RESTRICTED ACCESS WARNING
+            </p>
+            <p>
+              This system is restricted exclusively to authorized law enforcement officers. Unauthorized attempts to gain access, hack passcodes, or extract datasets constitute federal offenses punishable under Section 66 of the Information Technology Act, 2000.
+            </p>
+          </div>
+        </motion.div>
+      </div>
+    );
+  }
+
+  // Render Dashboard if authenticated
   return (
     <div className="w-full space-y-8 animate-fade-in">
       
+      {/* Authorized Header Notice */}
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-emerald-500/5 border border-emerald-500/15 p-4 rounded-2xl">
+        <div className="flex items-center gap-3">
+          <div className="p-2 bg-emerald-500/10 rounded-xl border border-emerald-500/20 text-emerald-400">
+            <UserCheck className="w-4 h-4" />
+          </div>
+          <div>
+            <div className="text-[9px] uppercase font-bold text-slate-400">Verification Active</div>
+            <div className="text-xs font-bold text-emerald-400 flex items-center gap-1.5 mt-0.5">
+              Secure Terminal: Officer MHA-IT-ADMIN Active
+            </div>
+          </div>
+        </div>
+        <button
+          onClick={handleLogout}
+          className="bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20 px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 transition duration-200"
+        >
+          <LogOut className="w-3.5 h-3.5" />
+          Log Out Node
+        </button>
+      </div>
+
       {/* 1. Statistics Summary Widgets */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <div className="bg-[#111827] border border-white/5 p-5 rounded-2xl flex items-center justify-between shadow-xl">
           <div>
-            <span className="text-[11px] text-slate-400 font-bold uppercase tracking-wider">Total Reports</span>
+            <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Total Reports</span>
             <div className="text-2xl font-bold mt-1 text-white">{totalCases}</div>
           </div>
           <div className="p-3 bg-indigo-500/10 rounded-xl border border-indigo-500/20 text-indigo-400">
@@ -185,7 +320,7 @@ export default function Admin() {
 
         <div className="bg-[#111827] border border-white/5 p-5 rounded-2xl flex items-center justify-between shadow-xl">
           <div>
-            <span className="text-[11px] text-slate-400 font-bold uppercase tracking-wider">High Severity</span>
+            <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">High Severity</span>
             <div className="text-2xl font-bold mt-1 text-red-500">{highSevCases}</div>
           </div>
           <div className="p-3 bg-red-500/10 rounded-xl border border-red-500/20 text-red-400">
@@ -195,7 +330,7 @@ export default function Admin() {
 
         <div className="bg-[#111827] border border-white/5 p-5 rounded-2xl flex items-center justify-between shadow-xl">
           <div>
-            <span className="text-[11px] text-slate-400 font-bold uppercase tracking-wider">Under Action</span>
+            <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Under Action</span>
             <div className="text-2xl font-bold mt-1 text-amber-500">{activeCases}</div>
           </div>
           <div className="p-3 bg-amber-500/10 rounded-xl border border-amber-500/20 text-amber-400">
@@ -205,7 +340,7 @@ export default function Admin() {
 
         <div className="bg-[#111827] border border-white/5 p-5 rounded-2xl flex items-center justify-between shadow-xl">
           <div>
-            <span className="text-[11px] text-slate-400 font-bold uppercase tracking-wider">Resolved Cases</span>
+            <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Resolved Cases</span>
             <div className="text-2xl font-bold mt-1 text-emerald-500">{resolvedCases}</div>
           </div>
           <div className="p-3 bg-emerald-500/10 rounded-xl border border-emerald-500/20 text-emerald-400">
@@ -220,9 +355,9 @@ export default function Admin() {
         {/* Intelligence Map Picker */}
         <div className="lg:col-span-2 bg-[#111827] border border-white/5 p-5 rounded-3xl shadow-xl space-y-4">
           <div className="flex justify-between items-center">
-            <h3 className="text-sm font-bold uppercase tracking-wider text-slate-300 flex items-center gap-1.5">
+            <h3 className="text-xs font-bold uppercase tracking-wider text-slate-350 flex items-center gap-1.5">
               <MapPin className="w-4 h-4 text-red-500" />
-              Geo-Intelligence Mapping
+              Geo-Intelligence Crime Hotspots Mapping
             </h3>
             <span className="text-xs text-slate-400">
               {geotaggedReports.length} Tagged Cases
@@ -271,36 +406,51 @@ export default function Admin() {
           </div>
         </div>
 
-        {/* Charts summary panel */}
-        <div className="lg:col-span-1 bg-[#111827] border border-white/5 p-5 rounded-3xl shadow-xl flex flex-col justify-between">
-          <h3 className="text-sm font-bold uppercase tracking-wider text-slate-300">Severity Breakdown</h3>
+        {/* Custom SVG Charts summary panel */}
+        <div className="lg:col-span-1 bg-[#111827] border border-white/5 p-5 rounded-3xl shadow-xl flex flex-col justify-between space-y-4">
+          <h3 className="text-xs font-bold uppercase tracking-wider text-slate-350">Severity & Category Meters</h3>
           
-          <div className="h-[220px] flex items-center justify-center">
-            {pieData.length > 0 ? (
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie
-                    data={pieData}
-                    cx="50%"
-                    cy="50%"
-                    innerRadius={50}
-                    outerRadius={75}
-                    paddingAngle={4}
-                    dataKey="value"
-                  >
-                    {pieData.map((entry, idx) => (
-                      <Cell key={`cell-${idx}`} fill={SEVERITY_COLORS[entry.name] || '#94a3b8'} />
-                    ))}
-                  </Pie>
-                  <Tooltip 
-                    contentStyle={{ backgroundColor: '#0f172a', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '8px' }}
-                    labelStyle={{ color: '#fff' }}
-                  />
-                  <Legend verticalAlign="bottom" height={36} iconType="circle" />
-                </PieChart>
-              </ResponsiveContainer>
+          {/* Custom Severity Bars */}
+          <div className="space-y-3 flex-1">
+            <h4 className="text-[10px] font-bold uppercase text-slate-500 tracking-wider">Severity Breakdown</h4>
+            {['High', 'Medium', 'Low'].map((level) => {
+              const count = severityCounts[level] || 0;
+              const percent = totalCases > 0 ? Math.round((count / totalCases) * 100) : 0;
+              const color = level === 'High' ? 'bg-red-500' : level === 'Medium' ? 'bg-amber-500' : 'bg-emerald-500';
+              return (
+                <div key={level} className="space-y-1">
+                  <div className="flex justify-between text-[11px]">
+                    <span className="font-semibold text-slate-300">{level} urgency</span>
+                    <span className="font-bold text-slate-400">{count} ({percent}%)</span>
+                  </div>
+                  <div className="w-full bg-slate-900 h-2 rounded-full overflow-hidden border border-white/5">
+                    <motion.div 
+                      className={`h-full ${color}`} 
+                      initial={{ width: 0 }}
+                      animate={{ width: `${percent}%` }}
+                      transition={{ duration: 0.8 }}
+                    />
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Custom Category List Summary */}
+          <div className="space-y-2 pt-2 border-t border-white/5 max-h-[140px] overflow-y-auto">
+            <h4 className="text-[10px] font-bold uppercase text-slate-500 tracking-wider">Category Tally</h4>
+            {Object.keys(categoryCounts).length > 0 ? (
+              Object.keys(categoryCounts).map((cat) => {
+                const count = categoryCounts[cat];
+                return (
+                  <div key={cat} className="flex justify-between items-center text-[10px] py-1 border-b border-white/5 last:border-b-0">
+                    <span className="text-slate-400 font-medium">{cat}</span>
+                    <span className="font-mono bg-white/5 border border-white/10 px-1.5 py-0.5 rounded text-white font-bold">{count} cases</span>
+                  </div>
+                );
+              })
             ) : (
-              <span className="text-xs text-slate-500">No chart data available</span>
+              <div className="text-[10px] text-slate-600 text-center py-2">No active categories.</div>
             )}
           </div>
         </div>
@@ -313,7 +463,7 @@ export default function Admin() {
         {/* Left Side: Filter & Report list (1/3 width) */}
         <div className="lg:col-span-1 bg-[#111827] border border-white/5 p-5 rounded-3xl shadow-xl space-y-4">
           <div className="flex items-center justify-between pb-3 border-b border-white/5">
-            <h3 className="text-sm font-bold uppercase tracking-wider text-slate-300 flex items-center gap-1.5">
+            <h3 className="text-xs font-bold uppercase tracking-wider text-slate-300 flex items-center gap-1.5">
               <Filter className="w-4 h-4 text-slate-400" />
               Incidents List
             </h3>
@@ -325,9 +475,9 @@ export default function Admin() {
           {/* Filters drop downs */}
           <div className="space-y-3">
             <div>
-              <label className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">Category</label>
+              <label className="text-[9px] text-slate-500 font-bold uppercase tracking-wider">Category</label>
               <select
-                className="w-full mt-1 bg-slate-900 border border-white/5 rounded-lg px-3 py-2 text-xs text-slate-300 outline-none"
+                className="w-full mt-1 bg-slate-900 border border-white/5 rounded-lg px-3 py-2 text-xs text-slate-350 outline-none"
                 value={filterCategory}
                 onChange={(e) => setFilterCategory(e.target.value)}
               >
@@ -343,9 +493,9 @@ export default function Admin() {
 
             <div className="grid grid-cols-2 gap-2">
               <div>
-                <label className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">Severity</label>
+                <label className="text-[9px] text-slate-500 font-bold uppercase tracking-wider">Severity</label>
                 <select
-                  className="w-full mt-1 bg-slate-900 border border-white/5 rounded-lg px-3 py-2 text-xs text-slate-300 outline-none"
+                  className="w-full mt-1 bg-slate-900 border border-white/5 rounded-lg px-3 py-2 text-xs text-slate-350 outline-none"
                   value={filterSeverity}
                   onChange={(e) => setFilterSeverity(e.target.value)}
                 >
@@ -356,9 +506,9 @@ export default function Admin() {
                 </select>
               </div>
               <div>
-                <label className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">Status</label>
+                <label className="text-[9px] text-slate-500 font-bold uppercase tracking-wider">Status</label>
                 <select
-                  className="w-full mt-1 bg-slate-900 border border-white/5 rounded-lg px-3 py-2 text-xs text-slate-300 outline-none"
+                  className="w-full mt-1 bg-slate-900 border border-white/5 rounded-lg px-3 py-2 text-xs text-slate-350 outline-none"
                   value={filterStatus}
                   onChange={(e) => setFilterStatus(e.target.value)}
                 >
@@ -445,13 +595,13 @@ export default function Admin() {
                     <div className="flex items-center gap-2">
                       <span className="text-xs text-slate-500 font-mono">Case File ID: #SPK-{selectedReport.id}</span>
                       {selectedReport.redacted && (
-                        <span className="flex items-center gap-1 text-[10px] bg-blue-500/10 text-blue-400 border border-blue-500/20 px-2 py-0.5 rounded">
+                        <span className="flex items-center gap-1 text-[10px] bg-blue-500/10 text-blue-400 border border-blue-500/20 px-2 py-0.5 rounded animate-pulse">
                           <Sparkles className="w-3 h-3 text-blue-400" />
                           AI Redacted
                         </span>
                       )}
                     </div>
-                    <h2 className="text-lg font-bold text-white leading-tight">{selectedReport.title}</h2>
+                    <h2 className="text-base font-bold text-white leading-tight">{selectedReport.title}</h2>
                     <p className="text-xs text-slate-400">
                       Reported on {new Date(selectedReport.created_at).toLocaleString('en-IN')}
                     </p>
@@ -476,7 +626,7 @@ export default function Admin() {
                 {/* Description */}
                 <div className="space-y-2">
                   <h4 className="text-xs font-bold uppercase tracking-wider text-slate-400">Incident Narrative</h4>
-                  <div className="bg-slate-950/40 border border-white/5 rounded-2xl p-4 text-sm text-slate-200 leading-relaxed max-h-[160px] overflow-y-auto whitespace-pre-line">
+                  <div className="bg-slate-950/40 border border-white/5 rounded-2xl p-4 text-xs text-slate-200 leading-relaxed max-h-[160px] overflow-y-auto whitespace-pre-line font-mono">
                     {selectedReport.description}
                   </div>
                 </div>
@@ -570,7 +720,7 @@ export default function Admin() {
                   
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-start">
                     <div className="md:col-span-1 space-y-1.5">
-                      <label className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">Update Status</label>
+                      <label className="text-[9px] text-slate-500 font-bold uppercase tracking-wider">Update Status</label>
                       <select
                         className="w-full bg-slate-900 border border-white/5 rounded-xl px-3 py-2.5 text-xs text-slate-200 outline-none focus:border-blue-500/50 transition"
                         value={actionStatus}
@@ -584,10 +734,10 @@ export default function Admin() {
                     </div>
 
                     <div className="md:col-span-2 space-y-1.5">
-                      <label className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">Investigation Remarks</label>
+                      <label className="text-[9px] text-slate-500 font-bold uppercase tracking-wider">Investigation Remarks</label>
                       <textarea
                         rows={2}
-                        className="w-full bg-slate-900 border border-white/5 rounded-xl px-4 py-2.5 text-xs text-slate-200 placeholder-slate-600 outline-none focus:border-blue-500/50 transition resize-none"
+                        className="w-full bg-slate-900 border border-white/5 rounded-xl px-4 py-2.5 text-xs text-slate-200 placeholder-slate-655 outline-none focus:border-blue-500/50 transition resize-none"
                         placeholder="Add updates: 'Assigned to Sector 4 unit', 'Evidence dispatched for forensics', etc."
                         value={actionRemarks}
                         onChange={(e) => setActionRemarks(e.target.value)}
@@ -599,7 +749,7 @@ export default function Admin() {
                     <button
                       type="submit"
                       disabled={updating}
-                      className="bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs px-5 py-2.5 rounded-xl transition duration-200 flex items-center gap-1.5"
+                      className="bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs px-5 py-2.5 rounded-xl transition duration-200 flex items-center gap-1.5 shadow-lg shadow-blue-600/10"
                     >
                       {updating ? (
                         <>
@@ -607,7 +757,10 @@ export default function Admin() {
                           Saving updates...
                         </>
                       ) : (
-                        'Save Case Changes'
+                        <>
+                          <FileCheck className="w-4 h-4" />
+                          Save Case Changes
+                        </>
                       )}
                     </button>
                   </div>
@@ -615,7 +768,7 @@ export default function Admin() {
 
               </motion.div>
             ) : (
-              <div className="text-center py-20 text-slate-500 text-sm">
+              <div className="text-center py-20 text-slate-500 text-xs">
                 No case file selected. Select a report from the list to inspect.
               </div>
             )}

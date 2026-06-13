@@ -3,9 +3,12 @@ import cors from 'cors';
 import dotenv from 'dotenv';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import swaggerUi from 'swagger-ui-express';
+import swaggerJSDoc from 'swagger-jsdoc';
 import requestLogger from './middlewares/logger.js';
 import { upload } from './middlewares/upload.js';
 import reportsRouter from './routes/reports.js';
+import authRouter from './routes/auth.js';
 import { query } from './config/db.js';
 
 dotenv.config();
@@ -20,8 +23,67 @@ app.use(cors());
 app.use(express.json());
 app.use(requestLogger);
 
+// Swagger Documentation Configuration
+const swaggerOptions = {
+  definition: {
+    openapi: '3.0.0',
+    info: {
+      title: 'SpeakUp Anonymous Crime Reporting Portal API',
+      version: '1.0.0',
+      description: 'Official interactive Swagger API documentation for incident logs, media evidence uploads, and admin authentication workflows.',
+      contact: {
+        name: 'Ministry of Home Affairs - MHA IT Cell',
+      },
+    },
+    servers: [
+      {
+        url: `http://localhost:${PORT}`,
+        description: 'Development Server',
+      },
+    ],
+  },
+  apis: ['./routes/*.js', './server.js'],
+};
+
+const swaggerSpec = swaggerJSDoc(swaggerOptions);
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
+
+// Uploads static directory
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
+/**
+ * @swagger
+ * /api/upload:
+ *   post:
+ *     summary: Upload evidence media file (Images, Videos, PDFs)
+ *     tags: [Media]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         multipart/form-data:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               evidence:
+ *                 type: string
+ *                 format: binary
+ *                 description: Evidence file attachment (Max 50MB)
+ *     responses:
+ *       200:
+ *         description: Media file securely uploaded
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 fileUrl:
+ *                   type: string
+ *                   example: "http://localhost:5055/uploads/evidence-17182312.png"
+ *       400:
+ *         description: File payload absent
+ *       500:
+ *         description: Server error
+ */
 app.post('/api/upload', upload.single('evidence'), (req, res) => {
   try {
     if (!req.file) {
@@ -34,7 +96,9 @@ app.post('/api/upload', upload.single('evidence'), (req, res) => {
   }
 });
 
+// App Router mount
 app.use('/api/reports', reportsRouter);
+app.use('/api/auth', authRouter);
 
 async function initDatabase() {
   console.log('Initializing SpeakUP PostgreSQL database...');
@@ -55,7 +119,7 @@ async function initDatabase() {
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       );
     `);
-    console.log('✅ PostgreSQL reports table initialized successfully.');
+    console.log('✅ PostgreSQL reports table initialized successfully in Cloud.');
   } catch (err) {
     console.error('❌ Database initialization failed:', err.message);
   }
@@ -63,5 +127,6 @@ async function initDatabase() {
 
 app.listen(PORT, async () => {
   console.log(`✅ SpeakUp Backend server running at http://localhost:${PORT}`);
+  console.log(`📑 Interactive API Documentation active at http://localhost:${PORT}/api-docs`);
   await initDatabase();
 });
